@@ -1,0 +1,517 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Reference UI Colors */
+  --bg-page: #f9f8f4;
+  --bg-card: #ffffff;
+  --border-card: #e8e6e1;
+  --text-main: #2b2927;
+  --text-secondary: #74706c;
+  --text-muted: #9e9a95;
+
+  --accent-red: #bd5338;
+  --accent-red-hover: #a34127;
+
+  /* Badges */
+  --bg-badge-olive: #e5ecd8;
+  --text-badge-olive: #485c3c;
+  
+  --bg-badge-amber: #fef3c7;
+  --text-badge-amber: #b45309;
+
+  --bg-badge-red: #fee2e2;
+  --text-badge-red: #b91c1c;
+
+  --bg-badge-gray: #eeeae3;
+  --text-badge-gray: #625d57;
+
+  --success: #10b981;
+  --bg-highlight: rgba(243, 115, 60, 0.55);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-page);
+  background-image: radial-gradient(#e4e1db 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  line-height: 1.5;
+  padding: 2.5rem 1.5rem;
+}
+
+/* Page Layout Container */
+.app-container {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Header styling matching the image with float animation */
+header {
+  animation: headerFloat 4.2s ease-in-out infinite;
+  text-align: center;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.app-header-label {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.app-header-title {
+  font-size: 3.4rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  margin-top: 0.15rem;
+  text-shadow: 0 4px 16px rgba(243, 115, 60, 0.35), 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Input Row */
+.input-section {
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 5;
+}
+
+.chat-form {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.chat-input {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  padding: 1rem 1.2rem;
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  outline: none;
+  box-shadow: 0 12px 30px rgba(43, 41, 39, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transform-origin: center;
+  animation: expandInput 1.8s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+.chat-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0;
+  animation: fadeInPlaceholder 1.2s ease-out forwards;
+  animation-delay: 1.5s;
+}
+
+.chat-input:focus {
+  border-color: var(--text-secondary);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.chat-submit-btn {
+  background-color: var(--accent-red);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 0 1.75rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+
+.chat-submit-btn:hover {
+  background-color: var(--accent-red-hover);
+}
+
+.chat-submit-btn:disabled {
+  background-color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* Answer Card style from reference */
+.answer-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 20px 50px rgba(43, 41, 39, 0.06), 0 2px 6px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Grading Info Row */
+.grade-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.grade-badge {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  text-transform: capitalize;
+}
+
+.grade-badge.correct {
+  background-color: var(--bg-badge-olive);
+  color: var(--text-badge-olive);
+}
+
+.grade-badge.ambiguous {
+  background-color: var(--bg-badge-amber);
+  color: var(--text-badge-amber);
+}
+
+.grade-badge.incorrect {
+  background-color: var(--bg-badge-red);
+  color: var(--text-badge-red);
+}
+
+/* Answer Text block */
+.answer-text {
+  font-size: 1.1rem;
+  color: var(--text-main);
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+/* Sources inside the card */
+.sources-section {
+  border-top: 1px solid #f1efe9;
+  padding-top: 1rem;
+}
+
+.sources-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sources-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.source-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  color: var(--accent-red);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.source-item:hover {
+  text-decoration: underline;
+}
+
+.source-icon {
+  flex-shrink: 0;
+  font-size: 0.9rem;
+}
+
+/* Trace Card style from reference */
+.trace-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 15px 40px rgba(43, 41, 39, 0.05), 0 2px 4px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.trace-toggle-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+  user-select: none;
+}
+
+.trace-toggle-header span {
+  font-size: 0.8rem;
+  color: var(--text-main);
+}
+
+.trace-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.trace-nodes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-bottom: 1px solid #f1efe9;
+  padding-bottom: 1rem;
+}
+
+.trace-node-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.node-badge {
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.15rem 0.6rem;
+  border-radius: 6px;
+  background-color: var(--bg-badge-gray);
+  color: var(--text-badge-gray);
+  min-width: 55px;
+  text-align: center;
+  display: inline-block;
+  text-transform: capitalize;
+}
+
+.node-text {
+  color: var(--text-main);
+  line-height: 1.4;
+}
+
+/* Status Indicator at the bottom of trace card */
+.trace-status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.status-icon {
+  font-size: 1rem;
+}
+
+.status-icon.success {
+  color: #485c3c;
+}
+
+.status-icon.warning {
+  color: var(--accent-red);
+}
+
+/* Loading Dots */
+.loading-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  padding: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loading-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.loading-dots span {
+  width: 8px;
+  height: 8px;
+  background-color: var(--accent-red);
+  border-radius: 50%;
+  animation: dot-pulse 1.5s infinite ease-in-out;
+}
+
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dot-pulse {
+  0%, 100% { transform: scale(0.6); opacity: 0.4; }
+  50% { transform: scale(1.2); opacity: 1; }
+}
+
+/* Section dividers */
+.qa-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+  animation: fadeIn 0.4s ease forwards;
+}
+
+.qa-query-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-top: 0.5rem;
+  padding-left: 0.25rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Floating Header animation (increased amplitude per user request) */
+@keyframes headerFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+.suggestions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding: 0 0.2rem;
+  position: relative;
+  z-index: 1;
+  opacity: 0;
+  transform: translateY(-20px);
+  animation: slideDownSuggestions 0.8s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+  animation-delay: 1.7s;
+}
+
+/* Input emerging/expanding animation from center */
+@keyframes expandInput {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+/* Placeholder text slow fade-in */
+@keyframes fadeInPlaceholder {
+  to {
+    opacity: 1;
+  }
+}
+
+/* Suggestions slide down from behind text box */
+@keyframes slideDownSuggestions {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-top: 2rem;
+  animation: fadeIn 0.8s ease forwards;
+  animation-delay: 2.2s;
+  opacity: 0;
+}
+
+@media (max-width: 768px) {
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.feature-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 10px 30px rgba(43, 41, 39, 0.04), 0 1px 3px rgba(0, 0, 0, 0.01);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 40px rgba(43, 41, 39, 0.07), 0 2px 6px rgba(0, 0, 0, 0.02);
+}
+
+.feature-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.feature-card-title span {
+  color: var(--accent-red);
+  font-size: 0.8rem;
+}
+
+.feature-card-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Live text highlighter animation */
+.creamy-highlight {
+  font-weight: 600;
+  color: var(--text-main);
+  background: linear-gradient(120deg, var(--bg-highlight) 0%, var(--bg-highlight) 100%);
+  background-repeat: no-repeat;
+  background-size: 0% 100%;
+  animation: liveHighlight 3.2s ease-in-out forwards;
+  animation-delay: 0.1s;
+  padding: 0.15rem 0.3rem;
+  margin: 0 0.1rem;
+  border-radius: 4px;
+  display: inline;
+}
+
+@keyframes liveHighlight {
+  to {
+    background-size: 100% 100%;
+  }
+}
