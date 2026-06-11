@@ -5,8 +5,8 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true
   },
-  basePath: '/self-updating-RAG',
-  assetPrefix: '/self-updating-RAG/'
+  basePath: '/LuminateAI',
+  assetPrefix: '/LuminateAI/'
 };
 
 export default nextConfig;

@@ -108,7 +108,7 @@ Open http://localhost:3000 in your browser.
 
 ## Live Deployment
 
-This application is deployed and live at: **[https://Jyotiraditya21-bug.github.io/self-updating-RAG/](https://Jyotiraditya21-bug.github.io/self-updating-RAG/)**
+This application is deployed and live at: **[https://Jyotiraditya21-bug.github.io/LuminateAI/](https://Jyotiraditya21-bug.github.io/LuminateAI/)**
 
 Since our index is compiled to a static asset, the entire search, clustering, corrective grading, and RAG generation runs client-side in your browser, requiring no backend server!
 
