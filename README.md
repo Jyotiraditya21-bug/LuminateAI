@@ -108,6 +108,8 @@ Open http://localhost:3000 in your browser.
 
 ## Deployment on Vercel
 
+This application is deployed and live at: **[https://self-updating-rag.vercel.app](https://self-updating-rag.vercel.app)**
+
 Since our index is compiled to a static asset (data/index.json), this app requires no heavy vector database at runtime and is fully deployable to serverless environments like Vercel.
 
 1. Push this repository to GitHub.
