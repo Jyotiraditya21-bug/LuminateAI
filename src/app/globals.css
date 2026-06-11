@@ -57,6 +57,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  position: relative;
 }
 
 /* Header styling matching the image with float animation */
@@ -514,4 +515,111 @@ header {
   to {
     background-size: 100% 100%;
   }
+}
+
+/* Settings Container and Panel Styling */
+.settings-wrapper {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 100;
+}
+
+.settings-toggle-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 20px;
+  padding: 0.5rem 1rem;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
+}
+
+.settings-toggle-btn:hover {
+  border-color: var(--text-secondary);
+  color: var(--text-main);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.settings-panel {
+  position: absolute;
+  top: 2.75rem;
+  right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  padding: 1.2rem;
+  width: 320px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  animation: fadeInPanel 0.2s ease-out;
+}
+
+@keyframes fadeInPanel {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.settings-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.settings-input-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.settings-input {
+  flex: 1;
+  background: var(--bg-page);
+  border: 1px solid var(--border-card);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  outline: none;
+  color: var(--text-main);
+}
+
+.settings-input:focus {
+  border-color: var(--text-secondary);
+}
+
+.settings-save-btn {
+  background: var(--accent-red);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.settings-save-btn:hover {
+  background-color: var(--accent-red-hover);
+}
+
+.settings-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.3;
 }

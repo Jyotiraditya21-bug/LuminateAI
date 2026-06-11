@@ -106,14 +106,14 @@ Open http://localhost:3000 in your browser.
 
 ---
 
-## Deployment on Vercel
+## Live Deployment
 
-This application is deployed and live at: **[https://self-updating-rag.vercel.app](https://self-updating-rag.vercel.app)**
+This application is deployed and live at: **[https://Jyotiraditya21-bug.github.io/self-updating-RAG/](https://Jyotiraditya21-bug.github.io/self-updating-RAG/)**
 
-Since our index is compiled to a static asset (data/index.json), this app requires no heavy vector database at runtime and is fully deployable to serverless environments like Vercel.
+Since our index is compiled to a static asset, the entire search, clustering, corrective grading, and RAG generation runs client-side in your browser, requiring no backend server!
 
-1. Push this repository to GitHub.
-2. Import the project on Vercel.
-3. Set your environment variable in project settings:
-   - `OPENAI_API_KEY`: Your OpenAI API key.
-4. Deploy!
+### How to use the Deployed Site:
+1. Open the live deployment link.
+2. Click on the **API Key** settings button in the top right.
+3. Paste your `OPENAI_API_KEY` (saved securely in your local browser cache).
+4. Run queries directly!

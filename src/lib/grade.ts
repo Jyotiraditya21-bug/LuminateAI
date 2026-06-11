@@ -138,7 +138,7 @@ export async function fetchLiveArxiv(
 
   console.log(`Generated live arXiv search query: "${arxivSearchQuery}"`);
 
-  const url = `http://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(arxivSearchQuery)}&start=0&max_results=5&sortBy=relevance`;
+  const url = `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(arxivSearchQuery)}&start=0&max_results=5&sortBy=relevance`;
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`arXiv search failed: ${res.statusText}`);

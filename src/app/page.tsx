@@ -1,13 +1,10 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-
-interface Citation {
-  title: string;
-  arxivId?: string;
-  url?: string;
-  source: 'index' | 'live';
-}
+import OpenAI from 'openai';
+import { retrieveNodes, IndexNode } from '@/lib/retrieve';
+import { gradeContext, fetchLiveArxiv, ArxivPaper } from '@/lib/grade';
+import { generateAnswer, Citation } from '@/lib/generate';
 
 interface RetrievedNode {
   id: string;
@@ -50,6 +47,26 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  const [indexNodes, setIndexNodes] = useState<IndexNode[]>([]);
+  const [apiKey, setApiKey] = useState('');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    // Load API Key from localStorage
+    const savedKey = localStorage.getItem('openai_api_key');
+    if (savedKey) setApiKey(savedKey);
+
+    // Load Index from public asset
+    fetch('index.json')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.nodes) {
+          setIndexNodes(data.nodes);
+        }
+      })
+      .catch(err => console.error('Failed to load index.json:', err));
+  }, []);
+
   // Auto-scroll disabled per user request
   // useEffect(() => {
   //   chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -86,36 +103,131 @@ export default function Home() {
     setQuery('');
     setIsLoading(true);
 
-    try {
-      const response = await fetch('/api/ask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: currentQuery }),
-      });
+    const keyToUse = apiKey || '';
+    if (!keyToUse) {
+      alert('Please configure your OpenAI API Key first (click the settings gear in the top-right).');
+      setIsSettingsOpen(true);
+      setIsLoading(false);
+      return;
+    }
 
-      if (!response.ok) {
-        throw new Error(await response.text() || 'Failed to get response');
+    try {
+      const openai = new OpenAI({ apiKey: keyToUse, dangerouslyAllowBrowser: true });
+
+      // 1. Embed user query
+      const embedResponse = await openai.embeddings.create({
+        model: 'text-embedding-3-small',
+        input: currentQuery,
+      });
+      const queryEmbedding = embedResponse.data[0].embedding;
+
+      // 2. Retrieve top-k nodes from index
+      const retrievalResults = retrieveNodes(queryEmbedding, 5, indexNodes);
+      const retrievedNodes = retrievalResults.map(r => r.node);
+
+      // 3. Grade context relevance (CRAG)
+      const grade = await gradeContext(openai, currentQuery, retrievedNodes);
+
+      // 4. Handle corrective fallback based on grade
+      let finalNodes: IndexNode[] = [];
+      let livePapers: ArxivPaper[] = [];
+      let arxivSearchQuery = '';
+      let fallbackTriggered = false;
+
+      if (grade.rating === 'CORRECT') {
+        finalNodes = retrievedNodes;
+      } else if (grade.rating === 'INCORRECT') {
+        fallbackTriggered = true;
+        const fallback = await fetchLiveArxiv(openai, currentQuery);
+        livePapers = fallback.papers;
+        arxivSearchQuery = fallback.searchQuery;
+      } else { // AMBIGUOUS
+        fallbackTriggered = true;
+        finalNodes = retrievedNodes;
+        const fallback = await fetchLiveArxiv(openai, currentQuery);
+        livePapers = fallback.papers;
+        arxivSearchQuery = fallback.searchQuery;
       }
 
-      const data = await response.json();
+      // 5. Compile context text and citations
+      const citations: Citation[] = [];
+      let contextTextParts: string[] = [];
+
+      // Add retrieved nodes to context
+      finalNodes.forEach(node => {
+        contextTextParts.push(`[Index Source: ${node.id} (${node.level})]\n${node.text}`);
+        if (node.level === 'leaf' && node.metadata) {
+          citations.push({
+            title: node.metadata.title,
+            arxivId: node.metadata.arxivId,
+            url: node.metadata.url,
+            source: 'index'
+          });
+        } else if (node.metadata) {
+          citations.push({
+            title: node.metadata.title || `Index Summary Node (${node.level})`,
+            source: 'index'
+          });
+        }
+      });
+
+      // Add live search papers to context
+      livePapers.forEach((paper, idx) => {
+        contextTextParts.push(`[Live arXiv Source ${idx + 1}]\nTitle: ${paper.title}\nAbstract: ${paper.abstract}`);
+        citations.push({
+          title: paper.title,
+          arxivId: paper.arxivId,
+          url: paper.url,
+          source: 'live'
+        });
+      });
+
+      const finalContextUsed = contextTextParts.join('\n\n');
+
+      // 6. Generate answer
+      const generation = await generateAnswer(openai, currentQuery, finalContextUsed, citations);
+
+      // 7. Construct trace log
+      const trace = {
+        retrievedNodes: retrievalResults.map(r => ({
+          id: r.node.id,
+          level: r.node.level,
+          text: r.node.text,
+          score: r.score,
+          title: r.node.metadata?.title || 'Summary Node'
+        })),
+        grade: {
+          rating: grade.rating,
+          reason: grade.reason
+        },
+        arxivFallback: {
+          triggered: fallbackTriggered,
+          searchQuery: arxivSearchQuery || undefined,
+          fetchedPapers: livePapers.map(p => ({
+            title: p.title,
+            arxivId: p.arxivId,
+            url: p.url
+          }))
+        },
+        finalContextUsed
+      };
 
       const newBlock: QABlock = {
         id: `block_${Date.now()}`,
         query: currentQuery,
-        answer: data.answer,
-        citations: data.citations || [],
-        trace: data.trace,
-        isTraceOpen: true // open by default
+        answer: generation.answer,
+        citations: generation.citations || [],
+        trace,
+        isTraceOpen: true
       };
 
       setBlocks(prev => [...prev, newBlock]);
     } catch (err: any) {
       console.error(err);
-      // Create a fallback error trace block
       const errorBlock: QABlock = {
         id: `block_${Date.now()}`,
         query: currentQuery,
-        answer: `Error: ${err.message || 'Could not connect to server.'}`,
+        answer: `Error: ${err.message || 'Failed to generate response.'}`,
         citations: [],
         trace: {
           retrievedNodes: [],
@@ -145,6 +257,47 @@ export default function Home() {
 
   return (
     <div className="app-container">
+      {/* Settings Wrapper */}
+      <div className="settings-wrapper">
+        <button 
+          onClick={() => setIsSettingsOpen(!isSettingsOpen)} 
+          className="settings-toggle-btn"
+        >
+          {/* Settings cog SVG icon */}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          API Key
+        </button>
+        {isSettingsOpen && (
+          <div className="settings-panel">
+            <div className="settings-label">OpenAI API Key Settings</div>
+            <div className="settings-input-row">
+              <input 
+                type="password" 
+                value={apiKey} 
+                onChange={e => setApiKey(e.target.value)} 
+                placeholder="sk-proj-..." 
+                className="settings-input"
+              />
+              <button 
+                onClick={() => {
+                  localStorage.setItem('openai_api_key', apiKey);
+                  setIsSettingsOpen(false);
+                }} 
+                className="settings-save-btn"
+              >
+                Save
+              </button>
+            </div>
+            <div className="settings-desc">
+              Your API key is stored locally in your browser cache and is used only to directly query OpenAI APIs.
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Header matching reference design with Luminate AI title */}
       <header style={{ marginBottom: '1rem' }}>
         <h1 className="app-header-title">Luminate AI</h1>
