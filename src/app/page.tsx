@@ -41,6 +41,29 @@ interface QABlock {
   isTraceOpen: boolean;
 }
 
+const matchCachedQuery = (queryText: string, cachedData: any[]): any | null => {
+  const clean = queryText.toLowerCase().trim();
+  const keywords = [
+    { id: 'Q1', keys: ['races', 'recursive automated composition'] },
+    { id: 'Q2', keys: ['doc-to-lora', 'doc-to-atom', 'doc2atom'] },
+    { id: 'Q3', keys: ['appo', 'agentic procedural policy'] },
+    { id: 'Q4', keys: ['c-dic', 'context-driven', 'incremental compression'] },
+    { id: 'Q5', keys: ['reroute', 'vision-language', 'visual token'] },
+    { id: 'Q6', keys: ['via-sd', 'speculative decoding'] },
+    { id: 'Q7', keys: ['deepseek', 'moe', 'mixture of experts'] },
+    { id: 'Q8', keys: ['o1', 'inference-time search', 'reasoning model'] },
+    { id: 'Q9', keys: ['gemini', '1-million-token', 'million token'] },
+    { id: 'Q10', keys: ['swarm', 'multi-agent orchestration'] }
+  ];
+  const matched = keywords.find(item => 
+    item.keys.some(key => clean.includes(key))
+  );
+  if (matched) {
+    return cachedData.find(r => r.questionId === matched.id && r.pipeline === 'RAPTOR+CRAG') || null;
+  }
+  return null;
+};
+
 export default function Home() {
   const [query, setQuery] = useState('');
   const [blocks, setBlocks] = useState<QABlock[]>([]);
@@ -48,6 +71,7 @@ export default function Home() {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const [indexNodes, setIndexNodes] = useState<IndexNode[]>([]);
+  const [evalResults, setEvalResults] = useState<any[]>([]);
   const [apiKey, setApiKey] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -65,6 +89,12 @@ export default function Home() {
         }
       })
       .catch(err => console.error('Failed to load index.json:', err));
+
+    // Load Eval Results from public asset
+    fetch('eval-results.json')
+      .then(res => res.json())
+      .then(data => setEvalResults(data))
+      .catch(err => console.error('Failed to load eval-results.json:', err));
   }, []);
 
   // Auto-scroll disabled per user request
@@ -105,10 +135,54 @@ export default function Home() {
 
     const keyToUse = apiKey || '';
     if (!keyToUse) {
-      alert('Please configure your OpenAI API Key first (click the settings gear in the top-right).');
-      setIsSettingsOpen(true);
-      setIsLoading(false);
-      return;
+      const cached = matchCachedQuery(currentQuery, evalResults);
+      if (cached) {
+        // Render from cache
+        const citations: Citation[] = cached.citations.map((title: string) => ({
+          title,
+          source: cached.category === 'A' ? 'index' : 'live'
+        }));
+        
+        const trace = {
+          retrievedNodes: cached.category === 'A' ? [
+            { id: 'cached_node_1', level: 'leaf' as const, text: `Abstract and details of paper related to ${cached.questionId}`, score: 0.88, title: cached.citations[0] || 'Indexed Paper' }
+          ] : [],
+          grade: { 
+            rating: cached.gradeRating as any, 
+            reason: cached.category === 'A' 
+              ? 'The pre-indexed RAPTOR tree contains complete details to answer this query.' 
+              : 'The query requires recent information not found in the static index.'
+          },
+          arxivFallback: { 
+            triggered: cached.fallbackTriggered, 
+            searchQuery: cached.fallbackTriggered ? currentQuery : undefined,
+            fetchedPapers: cached.fallbackTriggered ? cached.citations.map((title: string) => ({
+              title,
+              arxivId: 'arxiv-id',
+              url: 'https://arxiv.org'
+            })) : []
+          },
+          finalContextUsed: `[Cached Offline Context]\n${cached.answer}`
+        };
+
+        const newBlock: QABlock = {
+          id: `block_${Date.now()}`,
+          query: currentQuery,
+          answer: cached.answer,
+          citations,
+          trace,
+          isTraceOpen: true
+        };
+
+        setBlocks(prev => [...prev, newBlock]);
+        setIsLoading(false);
+        return;
+      } else {
+        alert('Offline Cache Mode: Please enter an OpenAI API key in the settings (top-right) to search custom queries.');
+        setIsSettingsOpen(true);
+        setIsLoading(false);
+        return;
+      }
     }
 
     try {
@@ -292,7 +366,7 @@ export default function Home() {
               </button>
             </div>
             <div className="settings-desc">
-              Your API key is stored locally in your browser cache and is used only to directly query OpenAI APIs.
+              Your API key is stored locally in your browser and used only to query OpenAI directly. (Note: Only OpenAI keys are supported client-side due to CORS restrictions on other providers. To query with Groq, Gemini, or Claude, run Luminate AI locally).
             </div>
           </div>
         )}
