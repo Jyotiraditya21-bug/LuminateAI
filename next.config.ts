@@ -1,10 +1,11 @@
 import type { NextConfig } from "next";
 
-const isProd = process.env.NODE_ENV === "production";
-const basePath = isProd ? "/LuminateAI" : "";
+const isGitHubPages = process.env.GITHUB_PAGES === "true";
+const basePath = isGitHubPages ? "/LuminateAI" : "";
 
 const nextConfig: NextConfig = {
-  output: "export" as const,
+  // Only use static export when building for GitHub Pages
+  ...(isGitHubPages ? { output: "export" as const } : {}),
   basePath,
   ...(basePath ? { assetPrefix: `${basePath}/` } : {}),
   env: {
