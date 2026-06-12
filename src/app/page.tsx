@@ -586,12 +586,12 @@ arXiv Search Query:`;
 
       // 5. Generate answer
       const answerPrompt = `You are a professional AI research assistant specializing in Retrieval-Augmented Generation (RAG). 
-Your task is to answer the user's query using the provided context (which contains paper abstracts, cluster summaries, or live arXiv papers).
+Your task is to answer the user's query.
   
 Constraints:
 1. Answer the query thoroughly but concisely (under 200 words).
-2. Cite the specific papers/sources that inform your answer using their exact titles or titles in brackets. Format citations inline as [Title] or [Title, arXiv:ID].
-3. Only use the provided context. If the context does not contain the answer, say "I cannot find the answer in the retrieved sources."
+2. Cite the specific papers/sources that inform your answer using their exact titles or titles in brackets if they are present in the context. Format citations inline as [Title] or [Title, arXiv:ID].
+3. Prioritize using the provided context to answer. If the context is empty or does not contain the answer, you MUST answer the query to the best of your ability using your own pre-trained internal knowledge. If you do so, append a brief, professional note at the very end of your response: "*Note: Answer synthesized from internal knowledge as live arXiv search is unavailable client-side due to browser CORS policies.*"
 4. Be precise, professional, and clean in your formatting.
 5. Wrap key technical terms, model/paper names, and main concepts in **double asterisks** (markdown bold) so they can be highlighted on the screen (e.g. **RAPTOR**, **CRAG**, **speculative decoding**, **RACES**).
 
