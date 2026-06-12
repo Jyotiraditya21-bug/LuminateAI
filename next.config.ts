@@ -1,12 +1,18 @@
 import type { NextConfig } from "next";
 
+const isProd = process.env.NODE_ENV === "production";
+const basePath = isProd ? "/LuminateAI" : "";
+
 const nextConfig: NextConfig = {
-  output: 'export',
-  images: {
-    unoptimized: true
+  output: "export" as const,
+  basePath,
+  ...(basePath ? { assetPrefix: `${basePath}/` } : {}),
+  env: {
+    NEXT_PUBLIC_BASE_PATH: basePath,
   },
-  basePath: '/LuminateAI',
-  assetPrefix: '/LuminateAI/'
+  images: {
+    unoptimized: true,
+  },
 };
 
 export default nextConfig;
