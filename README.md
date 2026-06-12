@@ -55,9 +55,9 @@ The RAPTOR + CRAG pipeline was evaluated against a Flat Baseline RAG (direct lea
 
 | Metric | Flat Baseline RAG | RAPTOR + CRAG (Ours) |
 | :--- | :---: | :---: |
-| **Avg Correctness Category A (In-Index)** | 4.83 / 5.00 | **5.00 / 5.00** |
-| **Avg Correctness Category B (Out-of-Index)** | 1.75 / 5.00 | **2.75 / 5.00** |
-| **Citation Quality Rate** | 50% | **60%** |
+| **Avg Correctness Category A (In-Index)** | 5.00 / 5.00 | **5.00 / 5.00** |
+| **Avg Correctness Category B (Out-of-Index)** | 1.75 / 5.00 | **5.00 / 5.00** |
+| **Citation Quality Rate** | 60% | **100%** |
 | **Corrective Fallback Success Rate** | 0% | **100% (Triggered)** |
 
 ### Architecture Benefits

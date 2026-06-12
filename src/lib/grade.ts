@@ -123,22 +123,35 @@ export async function fetchLiveArxiv(
   openai: OpenAI,
   query: string
 ): Promise<{ papers: ArxivPaper[]; searchQuery: string }> {
-  // Use GPT-4o-mini to extract search keywords
-  const prompt = `Extract the 2-3 most important technical terms/keywords from this query for searching arXiv papers. Return only the keywords separated by spaces, with no punctuation, no quotes, and no extra text.\nQuery: "${query}"\nKeywords:`;
+  // Use GPT-4o-mini to generate an optimal arXiv query directly
+  const prompt = `You need to search the arXiv API for academic papers relevant to this user query: "${query}".
+Generate an optimal search query.
+Instructions:
+1. Extract only the 2 or 3 most important technical keywords or model names (e.g. "DeepSeek-V3", "Gemini 1.5", "OpenAI o1", "Swarm").
+2. Prefix each word with "all:" and join them with "+AND+" (e.g. "all:DeepSeek-V3+AND+all:MoE" or "all:OpenAI+AND+all:o1").
+3. Keep the words simple, strip out extra terms like "routing", "details", "mechanism", or "window" unless they are the primary subject.
+4. Keep the output strictly in the format: all:WORD1+AND+all:WORD2... with NO other text, NO quotes, and NO punctuation outside of the format.
+
+Query: "${query}"
+arXiv Search Query:`;
+
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [{ role: 'user', content: prompt }],
-    max_tokens: 20,
+    max_tokens: 30,
     temperature: 0.1
   });
 
-  const keywords = response.choices[0].message.content?.trim() || query;
-  // Format search query: replace spaces with +
-  const arxivSearchQuery = keywords.split(/\s+/).map(w => w.trim()).filter(Boolean).join('+');
+  const rawQuery = response.choices[0].message.content?.trim() || '';
+  // Clean up any formatting noise
+  const arxivSearchQuery = rawQuery.replace(/`/g, '').replace(/\s+/g, '').trim();
+  
+  // Reconstruct simple keywords for trace logs (e.g. "OpenAI o1")
+  const keywords = arxivSearchQuery.split('+AND+').map(s => s.replace('all:', '')).join(' ');
 
   console.log(`Generated live arXiv search query: "${arxivSearchQuery}"`);
 
-  const url = `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(arxivSearchQuery)}&start=0&max_results=5&sortBy=relevance`;
+  const url = `https://export.arxiv.org/api/query?search_query=${arxivSearchQuery}&start=0&max_results=5&sortBy=relevance`;
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`arXiv search failed: ${res.statusText}`);

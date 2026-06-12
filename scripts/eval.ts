@@ -206,19 +206,26 @@ async function judgeAnswer(
   query: string,
   answer: string,
   pipelineType: 'Baseline' | 'RAPTOR+CRAG',
-  category: 'A' | 'B'
+  category: 'A' | 'B',
+  retrievedCitations: Citation[]
 ): Promise<{ correctness: number; citationQuality: number; fallbackScore: number | 'N/A'; reason: string }> {
+  const citationsText = retrievedCitations.length > 0 
+    ? retrievedCitations.map((c, i) => `${i + 1}. Title: "${c.title}"${c.arxivId ? `, arXiv: ${c.arxivId}` : ''} (Source: ${c.source})`).join('\n')
+    : '(No sources retrieved)';
+
   const prompt = `You are an impartial evaluator grading answers from a RAG-based AI research assistant.
 You are given:
 1. User Query: "${query}"
 2. System Answer: "${answer}"
 3. Evaluated Pipeline: "${pipelineType}"
 4. Query Category: "${category}" (Category A queries are in-index, Category B queries are out-of-index)
+5. Retrieved Sources:
+${citationsText}
 
 Rate the answer on three metrics:
 1. Correctness: Rate from 1 to 5 (1 = completely incorrect/hallucinated, 5 = fully correct and comprehensive).
-2. Citation Quality: Rate as 1 (has real citations matching the source and they are relevant) or 0 (no citations, or citations are fabricated/irrelevant).
-3. Corrective Fallback: (Only relevant for Category B) Rate as 1 if the system successfully retrieved fresh details from the live search (e.g. mentions details about DeepSeek, o1, Gemini context window, or Swarm), and 0 if it hallucinated or failed to fetch live results. If category is A, rate as "N/A".
+2. Citation Quality: Rate as 1 if the answer uses and references the relevant titles from the "Retrieved Sources" list (formatted inline as [Title] or similar), and 0 if the citations in the answer are fabricated (not in the Retrieved Sources list), irrelevant, or missing entirely.
+3. Corrective Fallback: (Only relevant for Category B) Rate as 1 if the system successfully retrieved fresh details from the live search (as shown in the "Retrieved Sources" with Source: live) and correctly integrated them into the answer, and 0 if it hallucinated or failed to include details from the live sources. If category is A, rate as "N/A".
 
 Provide your evaluation in the following JSON format:
 {
@@ -289,7 +296,7 @@ async function main() {
       console.log('Running Baseline pipeline...');
       const run = await runBaseline(q.query, queryEmbedding);
       console.log('Judging Baseline answer...');
-      const judge = await judgeAnswer(q.query, run.answer, 'Baseline', q.category);
+      const judge = await judgeAnswer(q.query, run.answer, 'Baseline', q.category, run.citations);
       baseResult = {
         questionId: q.id,
         category: q.category,
@@ -312,7 +319,7 @@ async function main() {
       const run = await runRaptorCrag(q.query, queryEmbedding);
       console.log(`Graded: ${run.gradeRating} | Fallback Triggered: ${run.fallbackTriggered}`);
       console.log('Judging RAPTOR + CRAG answer...');
-      const judge = await judgeAnswer(q.query, run.answer, 'RAPTOR+CRAG', q.category);
+      const judge = await judgeAnswer(q.query, run.answer, 'RAPTOR+CRAG', q.category, run.citations);
       raptorResult = {
         questionId: q.id,
         category: q.category,
