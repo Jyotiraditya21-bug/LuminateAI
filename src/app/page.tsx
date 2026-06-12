@@ -227,22 +227,15 @@ export default function Home() {
     const savedProvider = localStorage.getItem('api_provider') as any;
     if (savedProvider) setProvider(savedProvider || 'openai');
 
-    // Load Index from public asset with basePath fallback
     const loadIndexData = async () => {
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
       try {
-        const res = await fetch('/LuminateAI/index.json');
+        const res = await fetch(`${basePath}/index.json`);
         if (!res.ok) throw new Error('status ' + res.status);
         const data = await res.json();
         if (data && data.nodes) setIndexNodes(data.nodes);
-      } catch (e) {
-        console.warn('Failed absolute index.json load, trying relative...');
-        try {
-          const res = await fetch('index.json');
-          const data = await res.json();
-          if (data && data.nodes) setIndexNodes(data.nodes);
-        } catch (err) {
-          console.error('All index load attempts failed:', err);
-        }
+      } catch (err) {
+        console.error('Failed to load index.json:', err);
       }
     };
 
@@ -257,7 +250,23 @@ export default function Home() {
   // Parse markdown **bold** and apply custom live highlight (first occurrence only)
   const renderHighlightedText = (text: string) => {
     if (!text) return '';
-    const parts = text.split(/\*\*([\s\S]*?)\*\*/g);
+
+    const keywordsToHighlight = [
+      'RACES', 'Doc-to-LoRA', 'Doc-to-Atom', 'Doc2Atom', 'APPO', 'C-DIC', 'Reroute', 'VIA-SD',
+      'DeepSeek-V3', 'DeepSeekMoE', 'DeepSeek', 'OpenAI o1', 'Gemini 1.5 Pro', 'Swarm',
+      'speculative decoding', 'mixture-of-experts', 'MoE', 'gating network', 'MLA', 'hierarchical indexing',
+      'corrective RAG', 'CRAG', 'RAPTOR'
+    ];
+    
+    let processedText = text;
+    
+    keywordsToHighlight.forEach(kw => {
+      const escapedKw = kw.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const regex = new RegExp(`(?<!\\*\\*)(?<!\\w)(${escapedKw})(?!\\w)(?!\\*\\*)`, 'gi');
+      processedText = processedText.replace(regex, '**$1**');
+    });
+
+    const parts = processedText.split(/\*\*([\s\S]*?)\*\*/g);
     const seen = new Set<string>();
 
     return parts.map((part, index) => {
