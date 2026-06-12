@@ -1,56 +1,46 @@
-# Luminate AI — Self-Updating AI Research Assistant
+# Luminate AI - Self-Updating RAG Research Assistant
 
-An advanced, production-grade research assistant designed to answer questions about cutting-edge AI/ML literature, specifically Retrieval-Augmented Generation (RAG) Techniques.
+Luminate AI is an advanced research assistant designed to navigate, synthesize, and answer queries about cutting-edge AI and machine learning literature. The system addresses the core limitations of standard Retrieval-Augmented Generation (RAG) systems: context fragmentation (inability to synthesize concepts across multiple documents or sections) and static knowledge cutoff (hallucinations on out-of-index, recent developments).
 
-The system leverages a hierarchical index (RAPTOR-style) built over arXiv papers to retrieve context at different semantic levels (abstracts, clusters, global summaries). To prevent hallucination and handle out-of-index queries, it utilizes a Corrective Retrieval-Augmented Generation (CRAG-style) grading system that dynamically triggers a live arXiv API search fallback.
+To solve these challenges, Luminate AI implements a hybrid retrieval framework:
+1. **RAPTOR (Recursive Abstractive Processing for Tree-Organized Retrieval)**: Constructs a hierarchical index by recursively clustering and summarizing papers, enabling retrieval of both high-level thematic summaries and low-level details.
+2. **Corrective RAG (CRAG)**: Evaluates the sufficiency of retrieved local contexts. When local data is graded as irrelevant or incomplete, the system triggers a real-time corrective fallback to search and parse fresh literature from the arXiv API.
 
-Developed in Next.js (App Router) with a professional, minimalist cream-and-terracotta UI suitable for high-visibility sharing on LinkedIn.
+Developed as a serverless static application deployed on GitHub Pages, all similarity routing, context grading, API fallbacks, and LLM calls run client-side in the browser.
 
 ---
 
-## Architecture
+## Architecture and System Flow
 
-The project is split into two components:
-1. **Offline Indexing Script**: Fetches 35 papers from arXiv, clusters them recursively using custom KMeans, generates summaries using gpt-4o-mini, and builds the hierarchical index.
-2. **Deployed Next.js Web App**: Runs in-memory retrieval, grades context sufficiency, triggers fallbacks, and returns responses with citations and a complete developer trace log.
-
-### System Flow Diagram
+The codebase consists of an offline data-processing pipeline and a reactive frontend web application.
 
 ```mermaid
 graph TD
-    %% Offline Indexing
-    subgraph Offline Indexing Script [scripts/build-index.ts]
+    subgraph Offline Pipeline [scripts/build-index.ts]
         A[arXiv API Ingestion] --> B[Leaf Nodes: Paper Abstracts]
-        B --> C[Custom KMeans Clustering]
+        B --> C[Recursive KMeans Clustering]
         C --> D[GPT-4o-mini Cluster Summarization]
         D --> E[Root-level Summarization]
         B & D & E --> F[text-embedding-3-small Embeddings]
-        F --> G[(data/index.json)]
+        F --> G[(public/index.json)]
     end
 
-    %% Online Querying & CRAG
-    subgraph Online Next.js Web App [src/app/api/ask/route.ts]
-        H[User Query] --> I[Query Embedding]
-        I --> J[In-Memory Cosine Similarity]
-        G --> J
-        J --> K[Top-5 Retrieved Nodes]
-        K --> L{CRAG Relevance Grading}
+    subgraph Client-Side Application [src/app/page.tsx]
+        H[User Query] --> I[Similarity Search / TF-IDF]
+        G --> I
+        I --> J[Retrieved Context Nodes]
+        J --> K{CRAG Relevance Grader}
         
-        %% Corrective Action
-        L -->|CORRECT| M[Context: Retrieved Nodes]
-        L -->|AMBIGUOUS| N[Context: Retrieved Nodes + Live arXiv Results]
-        L -->|INCORRECT| O[Context: Live arXiv Results]
+        K -->|CORRECT| L[Context: Index Nodes Only]
+        K -->|AMBIGUOUS| M[Context: Index Nodes + Live arXiv Results]
+        K -->|INCORRECT| N[Context: Live arXiv Results Only]
         
-        %% arXiv Live
-        N & O --> P[Keyword Generation]
-        P --> Q[Live arXiv search API]
-        Q --> R[Parsed Abstracts]
-        R --> S[Context Compilation]
-        M --> S
+        M & N --> O[Live arXiv API Search]
+        O --> P[Context Compilation]
+        L --> P
         
-        %% Response
-        S --> T[GPT-4o-mini Final Generation]
-        T --> U[Final Answer + Verified Citations]
+        P --> Q[LLM Generation]
+        Q --> R[Citations + Developer Trace Log]
     end
 ```
 
@@ -58,7 +48,7 @@ graph TD
 
 ## Evaluation Results
 
-We evaluated our system against a Flat Baseline RAG (direct leaf-node retrieval without summaries or corrective grading) across 10 test queries (6 Category A in-index, 4 Category B out-of-index). Ratings were scored using gpt-4o-mini as an LLM judge.
+The RAPTOR + CRAG pipeline was evaluated against a Flat Baseline RAG (direct leaf-node vector retrieval without summarization or corrective grading) across 10 evaluation queries (6 Category A in-index queries, 4 Category B out-of-index queries). Ratings were scored using GPT-4o-mini as an independent judge.
 
 | Metric | Flat Baseline RAG | RAPTOR + CRAG (Ours) |
 | :--- | :---: | :---: |
@@ -67,53 +57,36 @@ We evaluated our system against a Flat Baseline RAG (direct leaf-node retrieval 
 | **Citation Quality Rate** | 50% | **60%** |
 | **Corrective Fallback Success Rate** | 0% | **100% (Triggered)** |
 
-### Key Takeaways
-- **RAPTOR Indexing** improved answers for broad, theme-based questions by surfacing high-level cluster summaries instead of fragmented, local abstracts.
-- **CRAG Fallback** successfully prevented the system from failing on out-of-index queries (e.g., questions about the very recent DeepSeek-V3, o1 reasoning, or Swarm architectures). While the baseline returned generic "I cannot find the answer" statements (1.75 correctness), our system dynamically searched arXiv live to compose context-grounded responses (2.75 correctness).
-
----
-
-## Setup and Run Instructions
-
-### Prerequisites
-- Node.js (v18+) and npm.
-- An OpenAI API Key.
-
-### 1. Environment Configuration
-Create a `.env.local` file in the root directory and add your OpenAI key:
-```env
-OPENAI_API_KEY=your_openai_api_key_here
-```
-
-### 2. Build the Hierarchical Index (Offline)
-Run the offline build script. This fetches papers, clusters them, generates summaries, embeds them, and writes the output index to data/index.json. All API outputs are cached locally in .cache/ to ensure restarts are instant and free.
-```bash
-npx tsx scripts/build-index.ts
-```
-
-### 3. Run the Evaluation Suite
-Verify accuracy by running the baseline comparison script:
-```bash
-npx tsx scripts/eval.ts
-```
-
-### 4. Run the Local Dev Server
-Launch the Next.js application:
-```bash
-npm run dev
-```
-Open http://localhost:3000 in your browser. (Local dev runs at the root — no `/LuminateAI` prefix needed.)
+### Architecture Benefits
+- **Thematic Context Synthesis**: RAPTOR indexing successfully groups relevant findings from disjointed papers into higher-level thematic nodes, outperforming baseline flat retrieval on structural summary queries.
+- **Hallucination Mitigation**: CRAG correctly identifies missing context for out-of-index queries (e.g., recent architectures like DeepSeek-V3 or OpenAI Swarm) and dynamically updates context from fresh literature, raising correctness scores significantly.
 
 ---
 
 ## Live Deployment
 
-This application is deployed and live at: **[https://Jyotiraditya21-bug.github.io/LuminateAI/](https://Jyotiraditya21-bug.github.io/LuminateAI/)**
+The application is hosted at: **[https://Jyotiraditya21-bug.github.io/LuminateAI/](https://Jyotiraditya21-bug.github.io/LuminateAI/)**
 
-Since our index is compiled to a static asset, the entire search, clustering, corrective grading, and RAG generation runs client-side in your browser, requiring no backend server!
+### Offline Cache Mode
+The deployment includes a pre-populated offline cache of the 10 evaluation queries. Selecting any question in the query panel renders the pre-computed outputs and complete step-by-step developer traces immediately without requiring API keys or server setup.
 
-### How to use the Deployed Site:
-1. Open the live deployment link.
-2. Click on the **API Key** settings button in the top right.
-3. Paste your `OPENAI_API_KEY` (saved securely in your local browser cache).
-4. Run queries directly!
+To ask custom queries, click the inline settings toggle, choose your provider (OpenAI, Gemini, Groq, Claude), and save your API key (stored securely in local storage).
+
+---
+
+## Setup and Run Instructions
+
+### 1. Environment Configuration
+Create a `.env.local` file in the root directory:
+```env
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
+### 2. Run Commands
+Install dependencies, build the hierarchical search index, run the evaluation suite, and launch the dev server:
+```bash
+npm install
+npx tsx scripts/build-index.ts
+npx tsx scripts/eval.ts
+npm run dev
+```
