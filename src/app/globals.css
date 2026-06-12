@@ -519,10 +519,10 @@ header {
 
 /* Settings Container and Panel Styling */
 .settings-wrapper {
-  position: absolute;
-  top: 0;
-  right: 0;
-  z-index: 100;
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 9999;
 }
 
 .settings-toggle-btn {

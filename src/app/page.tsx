@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import OpenAI from 'openai';
 import { retrieveNodes, IndexNode } from '@/lib/retrieve';
-import { gradeContext, fetchLiveArxiv, ArxivPaper } from '@/lib/grade';
+import { gradeContext, fetchLiveArxiv, ArxivPaper, parseArxivXml } from '@/lib/grade';
 import { generateAnswer, Citation } from '@/lib/generate';
 
 interface RetrievedNode {
@@ -64,6 +64,115 @@ const matchCachedQuery = (queryText: string, cachedData: any[]): any | null => {
   return null;
 };
 
+function keywordRetrieve(queryText: string, nodes: IndexNode[], k = 5): Array<{ node: IndexNode; score: number }> {
+  const queryTerms = queryText.toLowerCase().split(/[^a-z0-9]+/i).filter(w => w.length > 2);
+  if (queryTerms.length === 0) {
+    return nodes.slice(0, k).map(node => ({ node, score: 1 }));
+  }
+  
+  const scored = nodes.map(node => {
+    const text = (node.text + ' ' + (node.metadata?.title || '')).toLowerCase();
+    let matches = 0;
+    queryTerms.forEach(term => {
+      if (text.includes(term)) matches++;
+    });
+    const levelBonus = node.level === 'root' ? 0.2 : node.level === 'cluster' ? 0.1 : 0;
+    const score = (matches / queryTerms.length) + levelBonus;
+    return { node, score };
+  });
+  
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, k);
+}
+
+async function callLLM(
+  provider: 'openai' | 'gemini' | 'groq' | 'claude',
+  apiKey: string,
+  prompt: string,
+  responseJson = false
+): Promise<string> {
+  if (provider === 'openai') {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.1,
+        response_format: responseJson ? { type: 'json_object' } : undefined
+      })
+    });
+    if (!res.ok) throw new Error(`OpenAI API error: ${res.statusText}`);
+    const data = await res.json();
+    return data.choices[0].message.content || '';
+  }
+  
+  if (provider === 'groq') {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'llama3-8b-8192',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.1,
+        response_format: responseJson ? { type: 'json_object' } : undefined
+      })
+    });
+    if (!res.ok) throw new Error(`Groq API error: ${res.statusText}`);
+    const data = await res.json();
+    return data.choices[0].message.content || '';
+  }
+  
+  if (provider === 'gemini') {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const body: any = {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.1,
+      }
+    };
+    if (responseJson) {
+      body.generationConfig.responseMimeType = "application/json";
+    }
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error(`Gemini API error: ${res.statusText}`);
+    const data = await res.json();
+    return data.candidates[0].content.parts[0].text || '';
+  }
+  
+  if (provider === 'claude') {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'dangerously-allow-browser': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-haiku-20241022',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    if (!res.ok) throw new Error(`Claude API error: ${res.statusText}`);
+    const data = await res.json();
+    return data.content[0].text || '';
+  }
+  
+  throw new Error('Unsupported provider');
+}
+
 export default function Home() {
   const [query, setQuery] = useState('');
   const [blocks, setBlocks] = useState<QABlock[]>([]);
@@ -73,12 +182,16 @@ export default function Home() {
   const [indexNodes, setIndexNodes] = useState<IndexNode[]>([]);
   const [evalResults, setEvalResults] = useState<any[]>([]);
   const [apiKey, setApiKey] = useState('');
+  const [provider, setProvider] = useState<'openai' | 'gemini' | 'groq' | 'claude'>('openai');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
-    // Load API Key from localStorage
+    // Load API Key and Provider from localStorage
     const savedKey = localStorage.getItem('openai_api_key');
     if (savedKey) setApiKey(savedKey);
+
+    const savedProvider = localStorage.getItem('api_provider') as any;
+    if (savedProvider) setProvider(savedProvider || 'openai');
 
     // Load Index from public asset
     fetch('index.json')
@@ -178,7 +291,7 @@ export default function Home() {
         setIsLoading(false);
         return;
       } else {
-        alert('Offline Cache Mode: Please enter an OpenAI API key in the settings (top-right) to search custom queries.');
+        alert('Offline Cache Mode: Please enter an API key in settings (top-right) to search custom queries.');
         setIsSettingsOpen(true);
         setIsLoading(false);
         return;
@@ -186,23 +299,63 @@ export default function Home() {
     }
 
     try {
-      const openai = new OpenAI({ apiKey: keyToUse, dangerouslyAllowBrowser: true });
+      let retrievedNodes: IndexNode[] = [];
+      let retrievalResults: Array<{ node: IndexNode; score: number }> = [];
 
-      // 1. Embed user query
-      const embedResponse = await openai.embeddings.create({
-        model: 'text-embedding-3-small',
-        input: currentQuery,
-      });
-      const queryEmbedding = embedResponse.data[0].embedding;
+      // 1. Retrieval step
+      if (provider === 'openai') {
+        const openai = new OpenAI({ apiKey: keyToUse, dangerouslyAllowBrowser: true });
+        const embedResponse = await openai.embeddings.create({
+          model: 'text-embedding-3-small',
+          input: currentQuery,
+        });
+        const queryEmbedding = embedResponse.data[0].embedding;
+        retrievalResults = retrieveNodes(queryEmbedding, 5, indexNodes);
+        retrievedNodes = retrievalResults.map(r => r.node);
+      } else {
+        retrievalResults = keywordRetrieve(currentQuery, indexNodes, 5);
+        retrievedNodes = retrievalResults.map(r => r.node);
+      }
 
-      // 2. Retrieve top-k nodes from index
-      const retrievalResults = retrieveNodes(queryEmbedding, 5, indexNodes);
-      const retrievedNodes = retrievalResults.map(r => r.node);
+      // 2. Context Grading (CRAG)
+      const contextTextForGrading = retrievedNodes
+        .map((n, i) => `[Snippet ${i + 1}] (Level: ${n.level})\nContent: ${n.text}`)
+        .join('\n\n');
 
-      // 3. Grade context relevance (CRAG)
-      const grade = await gradeContext(openai, currentQuery, retrievedNodes);
+      const gradingPrompt = `You are a strict grading assistant evaluating retrieval results for an AI research assistant.
+Given a user query and a list of retrieved snippets (which may be paper abstracts or higher-level summaries), assess if the context contains enough direct and confident information to fully answer the query.
 
-      // 4. Handle corrective fallback based on grade
+Select one of these three ratings:
+- CORRECT: The retrieved context is fully sufficient to answer the query confidently.
+- AMBIGUOUS: The context is partially helpful, but some details are missing or it is incomplete.
+- INCORRECT: The context is completely irrelevant or does not contain any answer to the query.
+
+Provide your output in the following JSON format:
+{
+  "rating": "CORRECT" | "AMBIGUOUS" | "INCORRECT",
+  "reason": "A one-sentence explanation of your grading decision."
+}
+
+Do not include any other text, markdown wrapper (like \`\`\`json), or whitespace. Return ONLY the raw JSON.
+
+User Query: "${currentQuery}"
+
+Retrieved Context:
+${contextTextForGrading}
+
+JSON Output:`;
+
+      const gradingResponse = await callLLM(provider, keyToUse, gradingPrompt, true);
+      let grade = { rating: 'AMBIGUOUS' as 'CORRECT' | 'AMBIGUOUS' | 'INCORRECT', reason: 'Failed to parse grading response.' };
+      try {
+        const parsed = JSON.parse(gradingResponse.trim());
+        grade.rating = parsed.rating || 'AMBIGUOUS';
+        grade.reason = parsed.reason || '';
+      } catch (e) {
+        console.error('Failed to parse grading response:', gradingResponse);
+      }
+
+      // 3. Handle corrective fallback based on grade
       let finalNodes: IndexNode[] = [];
       let livePapers: ArxivPaper[] = [];
       let arxivSearchQuery = '';
@@ -210,24 +363,31 @@ export default function Home() {
 
       if (grade.rating === 'CORRECT') {
         finalNodes = retrievedNodes;
-      } else if (grade.rating === 'INCORRECT') {
+      } else {
         fallbackTriggered = true;
-        const fallback = await fetchLiveArxiv(openai, currentQuery);
-        livePapers = fallback.papers;
-        arxivSearchQuery = fallback.searchQuery;
-      } else { // AMBIGUOUS
-        fallbackTriggered = true;
-        finalNodes = retrievedNodes;
-        const fallback = await fetchLiveArxiv(openai, currentQuery);
-        livePapers = fallback.papers;
-        arxivSearchQuery = fallback.searchQuery;
+        if (grade.rating === 'AMBIGUOUS') {
+          finalNodes = retrievedNodes;
+        }
+        
+        // Extract search keywords
+        const keywordsPrompt = `Extract the 2-3 most important technical terms/keywords from this query for searching arXiv papers. Return only the keywords separated by spaces, with no punctuation, no quotes, and no extra text.\nQuery: "${currentQuery}"\nKeywords:`;
+        const keywordsResponse = await callLLM(provider, keyToUse, keywordsPrompt);
+        const keywords = keywordsResponse.trim() || currentQuery;
+        arxivSearchQuery = keywords;
+        
+        const formattedQuery = keywords.split(/\s+/).map(w => w.trim()).filter(Boolean).join('+');
+        const url = `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(formattedQuery)}&start=0&max_results=5&sortBy=relevance`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const xmlText = await res.text();
+          livePapers = parseArxivXml(xmlText);
+        }
       }
 
-      // 5. Compile context text and citations
+      // 4. Compile context text and citations
       const citations: Citation[] = [];
       let contextTextParts: string[] = [];
 
-      // Add retrieved nodes to context
       finalNodes.forEach(node => {
         contextTextParts.push(`[Index Source: ${node.id} (${node.level})]\n${node.text}`);
         if (node.level === 'leaf' && node.metadata) {
@@ -245,7 +405,6 @@ export default function Home() {
         }
       });
 
-      // Add live search papers to context
       livePapers.forEach((paper, idx) => {
         contextTextParts.push(`[Live arXiv Source ${idx + 1}]\nTitle: ${paper.title}\nAbstract: ${paper.abstract}`);
         citations.push({
@@ -258,10 +417,36 @@ export default function Home() {
 
       const finalContextUsed = contextTextParts.join('\n\n');
 
-      // 6. Generate answer
-      const generation = await generateAnswer(openai, currentQuery, finalContextUsed, citations);
+      // 5. Generate answer
+      const answerPrompt = `You are a professional AI research assistant specializing in Retrieval-Augmented Generation (RAG). 
+Your task is to answer the user's query using the provided context (which contains paper abstracts, cluster summaries, or live arXiv papers).
+  
+Constraints:
+1. Answer the query thoroughly but concisely (under 200 words).
+2. Cite the specific papers/sources that inform your answer using their exact titles or titles in brackets. Format citations inline as [Title] or [Title, arXiv:ID].
+3. Only use the provided context. If the context does not contain the answer, say "I cannot find the answer in the retrieved sources."
+4. Be precise, professional, and clean in your formatting.
+5. Wrap key technical terms, model/paper names, and main concepts in **double asterisks** (markdown bold) so they can be highlighted on the screen (e.g. **RAPTOR**, **CRAG**, **speculative decoding**, **RACES**).
 
-      // 7. Construct trace log
+User Query: "${currentQuery}"
+
+Context:
+${finalContextUsed}
+
+Answer:`;
+
+      const generatedAnswer = await callLLM(provider, keyToUse, answerPrompt);
+
+      // Match which citations are actually mentioned
+      const lowerAnswer = generatedAnswer.toLowerCase();
+      const usedCitations = citations.filter(c => {
+        const titleMatch = lowerAnswer.includes(c.title.toLowerCase());
+        const idMatch = c.arxivId ? lowerAnswer.includes(c.arxivId.toLowerCase()) : false;
+        return titleMatch || idMatch;
+      });
+      const finalCitations = usedCitations.length > 0 ? usedCitations : citations;
+
+      // 6. Construct trace log
       const trace = {
         retrievedNodes: retrievalResults.map(r => ({
           id: r.node.id,
@@ -289,8 +474,8 @@ export default function Home() {
       const newBlock: QABlock = {
         id: `block_${Date.now()}`,
         query: currentQuery,
-        answer: generation.answer,
-        citations: generation.citations || [],
+        answer: generatedAnswer,
+        citations: finalCitations,
         trace,
         isTraceOpen: true
       };
@@ -346,27 +531,64 @@ export default function Home() {
         </button>
         {isSettingsOpen && (
           <div className="settings-panel">
-            <div className="settings-label">OpenAI API Key Settings</div>
-            <div className="settings-input-row">
-              <input 
-                type="password" 
-                value={apiKey} 
-                onChange={e => setApiKey(e.target.value)} 
-                placeholder="sk-proj-..." 
-                className="settings-input"
-              />
-              <button 
-                onClick={() => {
-                  localStorage.setItem('openai_api_key', apiKey);
-                  setIsSettingsOpen(false);
-                }} 
-                className="settings-save-btn"
+            <div className="settings-label">API Configuration</div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Provider</label>
+              <select 
+                value={provider} 
+                onChange={e => setProvider(e.target.value as any)}
+                style={{
+                  background: 'var(--bg-page)',
+                  border: '1px solid var(--border-card)',
+                  borderRadius: '6px',
+                  padding: '0.5rem',
+                  fontSize: '0.85rem',
+                  fontFamily: 'var(--font-sans)',
+                  outline: 'none',
+                  color: 'var(--text-main)'
+                }}
               >
-                Save
-              </button>
+                <option value="openai">OpenAI</option>
+                <option value="gemini">Google Gemini</option>
+                <option value="groq">Groq</option>
+                <option value="claude">Anthropic Claude</option>
+              </select>
             </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>API Key</label>
+              <div className="settings-input-row">
+                <input 
+                  type="password" 
+                  value={apiKey} 
+                  onChange={e => setApiKey(e.target.value)} 
+                  placeholder={
+                    provider === 'openai' ? 'sk-proj-...' :
+                    provider === 'gemini' ? 'AIzaSy...' :
+                    provider === 'groq' ? 'gsk_...' :
+                    'sk-ant-...'
+                  } 
+                  className="settings-input"
+                />
+                <button 
+                  onClick={() => {
+                    localStorage.setItem('openai_api_key', apiKey);
+                    localStorage.setItem('api_provider', provider);
+                    setIsSettingsOpen(false);
+                  }} 
+                  className="settings-save-btn"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+
             <div className="settings-desc">
-              Your API key is stored locally in your browser and used only to query OpenAI directly. (Note: Only OpenAI keys are supported client-side due to CORS restrictions on other providers. To query with Groq, Gemini, or Claude, run Luminate AI locally).
+              {provider === 'openai' && 'OpenAI is supported natively. It runs 1536-dimensional semantic vector search over the index.'}
+              {provider === 'gemini' && 'Google Gemini runs client-side using a fast TF-IDF keyword overlap search for retrieval, and gemini-1.5-flash for generation.'}
+              {provider === 'groq' && 'Groq completions run client-side using llama3-8b-8192. (Note: Groq might block browser requests due to CORS settings depending on your browser).'}
+              {provider === 'claude' && 'Anthropic Claude completions run client-side using claude-3-5-haiku. (Note: Anthropic API requests are blocked in browser client JS by CORS).'}
             </div>
           </div>
         )}
