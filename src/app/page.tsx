@@ -139,13 +139,29 @@ async function proxyFetch(url: RequestInfo | URL, init?: RequestInit): Promise<R
           ? url.toString() 
           : (url as Request).url || url.toString();
 
+      // Serialize headers (handling Headers instance or array list)
+      let headersObj: Record<string, string> = {};
+      if (init?.headers) {
+        if (init.headers instanceof Headers) {
+          init.headers.forEach((value, key) => {
+            headersObj[key] = value;
+          });
+        } else if (Array.isArray(init.headers)) {
+          init.headers.forEach(([key, value]) => {
+            headersObj[key] = value;
+          });
+        } else {
+          headersObj = { ...init.headers } as Record<string, string>;
+        }
+      }
+
       const res = await fetch('/api/proxy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           url: urlStr,
           method: init?.method || 'GET',
-          headers: init?.headers || {},
+          headers: headersObj,
           body: parsedBody
         })
       });
@@ -256,21 +272,52 @@ export default function Home() {
 
   const [indexNodes, setIndexNodes] = useState<IndexNode[]>([]);
   const [evalResults, setEvalResults] = useState<any[]>(evalResultsData);
-  const [apiKey, setApiKey] = useState('');
   const [provider, setProvider] = useState<'openai' | 'gemini' | 'groq' | 'claude'>('openai');
-  const [selectedModel, setSelectedModel] = useState('');
+  const [apiKeys, setApiKeys] = useState<{ openai: string; gemini: string; groq: string; claude: string }>({
+    openai: '',
+    gemini: '',
+    groq: '',
+    claude: ''
+  });
+  const [apiModels, setApiModels] = useState<{ openai: string; gemini: string; groq: string; claude: string }>({
+    openai: '',
+    gemini: '',
+    groq: '',
+    claude: ''
+  });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
-    // Load API Key, Provider and Model from localStorage
-    const savedKey = localStorage.getItem('openai_api_key');
-    if (savedKey) setApiKey(savedKey);
-
+    // Load Provider
     const savedProvider = localStorage.getItem('api_provider') as any;
     if (savedProvider) setProvider(savedProvider || 'openai');
 
-    const savedModel = localStorage.getItem('api_model');
-    if (savedModel) setSelectedModel(savedModel);
+    // Load API Keys
+    const openaiKey = localStorage.getItem('openai_api_key') || '';
+    const geminiKey = localStorage.getItem('gemini_api_key') || '';
+    const groqKey = localStorage.getItem('groq_api_key') || '';
+    const claudeKey = localStorage.getItem('claude_api_key') || '';
+    
+    setApiKeys({
+      openai: openaiKey,
+      gemini: geminiKey || (savedProvider === 'gemini' ? openaiKey : ''),
+      groq: groqKey || (savedProvider === 'groq' ? openaiKey : ''),
+      claude: claudeKey || (savedProvider === 'claude' ? openaiKey : '')
+    });
+
+    // Load API Models
+    const openaiModel = localStorage.getItem('openai_model') || '';
+    const geminiModel = localStorage.getItem('gemini_model') || '';
+    const groqModel = localStorage.getItem('groq_model') || '';
+    const claudeModel = localStorage.getItem('claude_model') || '';
+    
+    const legacyModel = localStorage.getItem('api_model') || '';
+    setApiModels({
+      openai: openaiModel || (savedProvider === 'openai' ? legacyModel : ''),
+      gemini: geminiModel || (savedProvider === 'gemini' ? legacyModel : ''),
+      groq: groqModel || (savedProvider === 'groq' ? legacyModel : ''),
+      claude: claudeModel || (savedProvider === 'claude' ? legacyModel : '')
+    });
 
     const loadIndexData = async () => {
       const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
@@ -335,7 +382,8 @@ export default function Home() {
     if (!currentQuery.trim() || isLoading) return;
     setIsLoading(true);
 
-    const keyToUse = apiKey || '';
+    const keyToUse = apiKeys[provider] || '';
+    const modelToUse = apiModels[provider] || '';
     if (!keyToUse) {
       const cached = matchCachedQuery(currentQuery, evalResults);
       if (cached) {
@@ -434,7 +482,7 @@ ${contextTextForGrading}
 
 JSON Output:`;
 
-      const gradingResponse = await callLLM(provider, keyToUse, gradingPrompt, true, selectedModel);
+      const gradingResponse = await callLLM(provider, keyToUse, gradingPrompt, true, modelToUse);
       let grade = { rating: 'AMBIGUOUS' as 'CORRECT' | 'AMBIGUOUS' | 'INCORRECT', reason: 'Failed to parse grading response.' };
       try {
         const parsed = JSON.parse(gradingResponse.trim());
@@ -470,7 +518,7 @@ Instructions:
 Query: "${currentQuery}"
 arXiv Search Query:`;
 
-        const keywordsResponse = await callLLM(provider, keyToUse, keywordsPrompt, false, selectedModel);
+        const keywordsResponse = await callLLM(provider, keyToUse, keywordsPrompt, false, modelToUse);
         const cleanedRawQuery = keywordsResponse.trim().replace(/`/g, '').replace(/\s+/g, '');
         const apiQuery = cleanedRawQuery || `all:${encodeURIComponent(currentQuery.replace(/\s+/g, '+AND+all:'))}`;
         arxivSearchQuery = apiQuery.split('+AND+').map(s => s.replace('all:', '')).join(' ');
@@ -534,7 +582,7 @@ ${finalContextUsed}
 
 Answer:`;
 
-      const generatedAnswer = await callLLM(provider, keyToUse, answerPrompt, false, selectedModel);
+      const generatedAnswer = await callLLM(provider, keyToUse, answerPrompt, false, modelToUse);
 
       // Match which citations are actually mentioned
       const lowerAnswer = generatedAnswer.toLowerCase();
@@ -706,8 +754,8 @@ Answer:`;
             <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>API Key</label>
             <input 
               type="password" 
-              value={apiKey} 
-              onChange={e => setApiKey(e.target.value)} 
+              value={apiKeys[provider]} 
+              onChange={e => setApiKeys(prev => ({ ...prev, [provider]: e.target.value }))} 
               placeholder={
                 provider === 'openai' ? 'sk-proj-...' :
                 provider === 'gemini' ? 'AIzaSy...' :
@@ -733,8 +781,8 @@ Answer:`;
             <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Model ID (Optional)</label>
             <input 
               type="text" 
-              value={selectedModel} 
-              onChange={e => setSelectedModel(e.target.value)} 
+              value={apiModels[provider]} 
+              onChange={e => setApiModels(prev => ({ ...prev, [provider]: e.target.value }))} 
               placeholder={
                 provider === 'openai' ? 'gpt-4o-mini' :
                 provider === 'gemini' ? 'gemini-2.5-flash' :
@@ -759,9 +807,21 @@ Answer:`;
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
             <button 
               onClick={() => {
-                localStorage.setItem('openai_api_key', apiKey);
+                localStorage.setItem('openai_api_key', apiKeys.openai);
+                localStorage.setItem('gemini_api_key', apiKeys.gemini);
+                localStorage.setItem('groq_api_key', apiKeys.groq);
+                localStorage.setItem('claude_api_key', apiKeys.claude);
+                
                 localStorage.setItem('api_provider', provider);
-                localStorage.setItem('api_model', selectedModel);
+                
+                localStorage.setItem('openai_model', apiModels.openai);
+                localStorage.setItem('gemini_model', apiModels.gemini);
+                localStorage.setItem('groq_model', apiModels.groq);
+                localStorage.setItem('claude_model', apiModels.claude);
+                
+                // Keep legacy items for fallback compatibility
+                localStorage.setItem('api_model', apiModels[provider]);
+                
                 setIsSettingsOpen(false);
               }} 
               className="settings-save-btn"
