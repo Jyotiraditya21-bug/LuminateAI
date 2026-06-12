@@ -321,18 +321,7 @@ export default function Home() {
   const [indexNodes, setIndexNodes] = useState<IndexNode[]>([]);
   const [evalResults, setEvalResults] = useState<any[]>(evalResultsData);
   const [provider, setProvider] = useState<'openai' | 'gemini' | 'groq' | 'claude'>('openai');
-  const [apiKeys, setApiKeys] = useState<{ openai: string; gemini: string; groq: string; claude: string }>({
-    openai: '',
-    gemini: '',
-    groq: '',
-    claude: ''
-  });
-  const [apiModels, setApiModels] = useState<{ openai: string; gemini: string; groq: string; claude: string }>({
-    openai: '',
-    gemini: '',
-    groq: '',
-    claude: ''
-  });
+  const [apiKey, setApiKey] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
@@ -340,32 +329,9 @@ export default function Home() {
     const savedProvider = localStorage.getItem('api_provider') as any;
     if (savedProvider) setProvider(savedProvider || 'openai');
 
-    // Load API Keys
-    const openaiKey = localStorage.getItem('openai_api_key') || '';
-    const geminiKey = localStorage.getItem('gemini_api_key') || '';
-    const groqKey = localStorage.getItem('groq_api_key') || '';
-    const claudeKey = localStorage.getItem('claude_api_key') || '';
-    
-    setApiKeys({
-      openai: openaiKey,
-      gemini: geminiKey || (savedProvider === 'gemini' ? openaiKey : ''),
-      groq: groqKey || (savedProvider === 'groq' ? openaiKey : ''),
-      claude: claudeKey || (savedProvider === 'claude' ? openaiKey : '')
-    });
-
-    // Load API Models
-    const openaiModel = localStorage.getItem('openai_model') || '';
-    const geminiModel = localStorage.getItem('gemini_model') || '';
-    const groqModel = localStorage.getItem('groq_model') || '';
-    const claudeModel = localStorage.getItem('claude_model') || '';
-    
-    const legacyModel = localStorage.getItem('api_model') || '';
-    setApiModels({
-      openai: openaiModel || (savedProvider === 'openai' ? legacyModel : ''),
-      gemini: geminiModel || (savedProvider === 'gemini' ? legacyModel : ''),
-      groq: groqModel || (savedProvider === 'groq' ? legacyModel : ''),
-      claude: claudeModel || (savedProvider === 'claude' ? legacyModel : '')
-    });
+    // Load API Key
+    const savedKey = localStorage.getItem('api_key') || localStorage.getItem('openai_api_key') || '';
+    setApiKey(savedKey);
 
     const loadIndexData = async () => {
       const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
@@ -430,8 +396,8 @@ export default function Home() {
     if (!currentQuery.trim() || isLoading) return;
     setIsLoading(true);
 
-    const keyToUse = apiKeys[provider] || '';
-    const modelToUse = apiModels[provider] || '';
+    const keyToUse = apiKey || '';
+    const modelToUse = '';
     if (!keyToUse) {
       const cached = matchCachedQuery(currentQuery, evalResults);
       if (cached) {
@@ -821,8 +787,8 @@ Answer:`;
             <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>API Key</label>
             <input 
               type="password" 
-              value={apiKeys[provider]} 
-              onChange={e => setApiKeys(prev => ({ ...prev, [provider]: e.target.value }))} 
+              value={apiKey} 
+              onChange={e => setApiKey(e.target.value)} 
               placeholder={
                 provider === 'openai' ? 'sk-proj-...' :
                 provider === 'gemini' ? 'AIzaSy...' :
@@ -844,51 +810,12 @@ Answer:`;
             />
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Model ID (Optional)</label>
-            <input 
-              type="text" 
-              value={apiModels[provider]} 
-              onChange={e => setApiModels(prev => ({ ...prev, [provider]: e.target.value }))} 
-              placeholder={
-                provider === 'openai' ? 'gpt-4o-mini' :
-                provider === 'gemini' ? 'gemini-2.5-flash' :
-                provider === 'groq' ? 'llama-3.3-70b-versatile' :
-                'claude-3-5-haiku-20241022'
-              } 
-              className="settings-input"
-              style={{
-                background: 'var(--bg-page)',
-                border: '1px solid var(--border-card)',
-                borderRadius: '6px',
-                padding: '0.5rem 0.75rem',
-                fontSize: '0.85rem',
-                fontFamily: 'var(--font-mono)',
-                outline: 'none',
-                color: 'var(--text-main)',
-                width: '100%'
-              }}
-            />
-          </div>
-
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
             <button 
               onClick={() => {
-                localStorage.setItem('openai_api_key', apiKeys.openai);
-                localStorage.setItem('gemini_api_key', apiKeys.gemini);
-                localStorage.setItem('groq_api_key', apiKeys.groq);
-                localStorage.setItem('claude_api_key', apiKeys.claude);
-                
+                localStorage.setItem('api_key', apiKey);
+                localStorage.setItem('openai_api_key', apiKey); // backward compatibility
                 localStorage.setItem('api_provider', provider);
-                
-                localStorage.setItem('openai_model', apiModels.openai);
-                localStorage.setItem('gemini_model', apiModels.gemini);
-                localStorage.setItem('groq_model', apiModels.groq);
-                localStorage.setItem('claude_model', apiModels.claude);
-                
-                // Keep legacy items for fallback compatibility
-                localStorage.setItem('api_model', apiModels[provider]);
-                
                 setIsSettingsOpen(false);
               }} 
               className="settings-save-btn"
