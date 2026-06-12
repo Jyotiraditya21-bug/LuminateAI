@@ -119,6 +119,45 @@ function keywordRetrieve(queryText: string, nodes: IndexNode[], k = 5): Array<{ 
   return scored.slice(0, k);
 }
 
+async function proxyFetch(url: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const isLocal = typeof window !== 'undefined' && 
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    
+  if (isLocal) {
+    try {
+      let parsedBody = init?.body;
+      if (typeof init?.body === 'string') {
+        try {
+          parsedBody = JSON.parse(init.body);
+        } catch (_) {}
+      }
+
+      // Safe string conversion for any RequestInfo or URL object
+      const urlStr = typeof url === 'string' 
+        ? url 
+        : url instanceof URL 
+          ? url.toString() 
+          : (url as Request).url || url.toString();
+
+      const res = await fetch('/api/proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: urlStr,
+          method: init?.method || 'GET',
+          headers: init?.headers || {},
+          body: parsedBody
+        })
+      });
+      if (res.ok) return res;
+    } catch (e) {
+      console.warn('Proxy fetch failed, falling back to direct fetch', e);
+    }
+  }
+  
+  return fetch(url, init);
+}
+
 async function callLLM(
   provider: 'openai' | 'gemini' | 'groq' | 'claude',
   apiKey: string,
@@ -127,7 +166,7 @@ async function callLLM(
   customModel?: string
 ): Promise<string> {
   if (provider === 'openai') {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    const res = await proxyFetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -146,7 +185,7 @@ async function callLLM(
   }
   
   if (provider === 'groq') {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const res = await proxyFetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -176,7 +215,7 @@ async function callLLM(
     if (responseJson) {
       body.generationConfig.responseMimeType = "application/json";
     }
-    const res = await fetch(url, {
+    const res = await proxyFetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -187,7 +226,7 @@ async function callLLM(
   }
   
   if (provider === 'claude') {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await proxyFetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -354,7 +393,7 @@ export default function Home() {
 
       // 1. Retrieval step
       if (provider === 'openai') {
-        const openai = new OpenAI({ apiKey: keyToUse, dangerouslyAllowBrowser: true });
+        const openai = new OpenAI({ apiKey: keyToUse, dangerouslyAllowBrowser: true, fetch: proxyFetch });
         const embedResponse = await openai.embeddings.create({
           model: 'text-embedding-3-small',
           input: currentQuery,
@@ -437,7 +476,7 @@ arXiv Search Query:`;
         arxivSearchQuery = apiQuery.split('+AND+').map(s => s.replace('all:', '')).join(' ');
         
         const url = `https://export.arxiv.org/api/query?search_query=${apiQuery}&start=0&max_results=5&sortBy=relevance`;
-        const res = await fetch(url);
+        const res = await proxyFetch(url);
         if (res.ok) {
           const xmlText = await res.text();
           livePapers = parseArxivXml(xmlText);
