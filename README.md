@@ -1,7 +1,7 @@
 # Luminate AI - Self-Updating RAG Research Assistant
 
 The application is hosted at:
-- **Production URL (Recommended)**: [self-updating-rag.vercel.app](https://self-updating-rag.vercel.app) (Full-fledged deployment with server-side proxy supporting all LLM providers)
+- **Production URL (Recommended)**: [luminate-ai-rag.vercel.app](https://luminate-ai-rag.vercel.app) (Full-fledged deployment with server-side proxy supporting all LLM providers)
 - **Static URL (Fallback)**: [jyotiraditya21-bug.github.io/LuminateAI/](https://jyotiraditya21-bug.github.io/LuminateAI/) (GitHub Pages static host with client-side CORS fallbacks)
 
 
@@ -98,3 +98,26 @@ npm run dev
 ---
 
 
+Use the following template to share this project with your network:
+
+```text
+Subject: Building a Self-Updating RAG Research Assistant (RAPTOR + Corrective RAG)
+
+I am excited to share Luminate AI, an advanced research assistant that solves two major limitations of standard Retrieval-Augmented Generation (RAG): context fragmentation and knowledge cutoff.
+
+Standard RAG struggles to synthesize high-level concepts across multiple documents and hallucinate on topics past its static knowledge index. Luminate AI addresses this through a hybrid retrieval architecture:
+
+1. Hierarchical Indexing (RAPTOR): Recursively clusters and summarizes academic literature to construct a retrieval tree. This allows it to fetch both broad thematic summaries (cluster/root nodes) and fine-grained leaf details.
+2. Corrective Fallback (CRAG): Evaluates retrieved context relevance. If the index content is graded as insufficient or out-of-date, it dynamically fallbacks to query and parse fresh literature from the arXiv API.
+
+Deployment Options:
+- Live Production App: https://luminate-ai-rag.vercel.app
+- Static Export Fallback: https://jyotiraditya21-bug.github.io/LuminateAI/
+- GitHub Repository: https://github.com/Jyotiraditya21-bug/LuminateAI
+
+I built this with Next.js 16 (Turbopack), using client-side storage for API keys and an execution trace log that reveals grading evaluations and cosine similarities step-by-step.
+
+Feel free to check out the repo and let me know your thoughts!
+
+#RAG #AI #MachineLearning #WebDevelopment #RAPTOR #CRAG #OpenSource
+```
