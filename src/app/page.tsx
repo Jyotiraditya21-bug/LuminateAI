@@ -123,7 +123,8 @@ async function callLLM(
   provider: 'openai' | 'gemini' | 'groq' | 'claude',
   apiKey: string,
   prompt: string,
-  responseJson = false
+  responseJson = false,
+  customModel?: string
 ): Promise<string> {
   if (provider === 'openai') {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -133,7 +134,7 @@ async function callLLM(
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: customModel || 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.1,
         response_format: responseJson ? { type: 'json_object' } : undefined
@@ -152,7 +153,7 @@ async function callLLM(
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
+        model: customModel || 'llama-3.1-8b-instant',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.1,
         response_format: responseJson ? { type: 'json_object' } : undefined
@@ -164,7 +165,8 @@ async function callLLM(
   }
   
   if (provider === 'gemini') {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const modelName = customModel || 'gemini-2.5-flash';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
     const body: any = {
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: {
@@ -194,7 +196,7 @@ async function callLLM(
         'dangerously-allow-browser': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022',
+        model: customModel || 'claude-3-5-haiku-20241022',
         max_tokens: 1024,
         messages: [{ role: 'user', content: prompt }]
       })
@@ -217,15 +219,19 @@ export default function Home() {
   const [evalResults, setEvalResults] = useState<any[]>(evalResultsData);
   const [apiKey, setApiKey] = useState('');
   const [provider, setProvider] = useState<'openai' | 'gemini' | 'groq' | 'claude'>('openai');
+  const [selectedModel, setSelectedModel] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
-    // Load API Key and Provider from localStorage
+    // Load API Key, Provider and Model from localStorage
     const savedKey = localStorage.getItem('openai_api_key');
     if (savedKey) setApiKey(savedKey);
 
     const savedProvider = localStorage.getItem('api_provider') as any;
     if (savedProvider) setProvider(savedProvider || 'openai');
+
+    const savedModel = localStorage.getItem('api_model');
+    if (savedModel) setSelectedModel(savedModel);
 
     const loadIndexData = async () => {
       const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
@@ -389,7 +395,7 @@ ${contextTextForGrading}
 
 JSON Output:`;
 
-      const gradingResponse = await callLLM(provider, keyToUse, gradingPrompt, true);
+      const gradingResponse = await callLLM(provider, keyToUse, gradingPrompt, true, selectedModel);
       let grade = { rating: 'AMBIGUOUS' as 'CORRECT' | 'AMBIGUOUS' | 'INCORRECT', reason: 'Failed to parse grading response.' };
       try {
         const parsed = JSON.parse(gradingResponse.trim());
@@ -413,14 +419,24 @@ JSON Output:`;
           finalNodes = retrievedNodes;
         }
         
-        // Extract search keywords
-        const keywordsPrompt = `Extract the 2-3 most important technical terms/keywords from this query for searching arXiv papers. Return only the keywords separated by spaces, with no punctuation, no quotes, and no extra text.\nQuery: "${currentQuery}"\nKeywords:`;
-        const keywordsResponse = await callLLM(provider, keyToUse, keywordsPrompt);
-        const keywords = keywordsResponse.trim() || currentQuery;
-        arxivSearchQuery = keywords;
+        // Extract search keywords using the high-precision arXiv query prompt
+        const keywordsPrompt = `You need to search the arXiv API for academic papers relevant to this user query: "${currentQuery}".
+Generate an optimal search query.
+Instructions:
+1. Extract only the 2 or 3 most important technical keywords or model names (e.g. "DeepSeek-V3", "Gemini 1.5", "OpenAI o1", "Swarm").
+2. Prefix each word with "all:" and join them with "+AND+" (e.g. "all:DeepSeek-V3+AND+all:MoE" or "all:OpenAI+AND+all:o1").
+3. Keep the words simple, strip out extra terms like "routing", "details", "mechanism", or "window" unless they are the primary subject.
+4. Keep the output strictly in the format: all:WORD1+AND+all:WORD2... with NO other text, NO quotes, and NO punctuation outside of the format.
+
+Query: "${currentQuery}"
+arXiv Search Query:`;
+
+        const keywordsResponse = await callLLM(provider, keyToUse, keywordsPrompt, false, selectedModel);
+        const cleanedRawQuery = keywordsResponse.trim().replace(/`/g, '').replace(/\s+/g, '');
+        const apiQuery = cleanedRawQuery || `all:${encodeURIComponent(currentQuery.replace(/\s+/g, '+AND+all:'))}`;
+        arxivSearchQuery = apiQuery.split('+AND+').map(s => s.replace('all:', '')).join(' ');
         
-        const formattedQuery = keywords.split(/\s+/).map(w => w.trim()).filter(Boolean).join('+');
-        const url = `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(formattedQuery)}&start=0&max_results=5&sortBy=relevance`;
+        const url = `https://export.arxiv.org/api/query?search_query=${apiQuery}&start=0&max_results=5&sortBy=relevance`;
         const res = await fetch(url);
         if (res.ok) {
           const xmlText = await res.text();
@@ -479,7 +495,7 @@ ${finalContextUsed}
 
 Answer:`;
 
-      const generatedAnswer = await callLLM(provider, keyToUse, answerPrompt);
+      const generatedAnswer = await callLLM(provider, keyToUse, answerPrompt, false, selectedModel);
 
       // Match which citations are actually mentioned
       const lowerAnswer = generatedAnswer.toLowerCase();
@@ -649,52 +665,82 @@ Answer:`;
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>API Key</label>
-            <div className="settings-input-row" style={{ display: 'flex', gap: '0.5rem' }}>
-              <input 
-                type="password" 
-                value={apiKey} 
-                onChange={e => setApiKey(e.target.value)} 
-                placeholder={
-                  provider === 'openai' ? 'sk-proj-...' :
-                  provider === 'gemini' ? 'AIzaSy...' :
-                  provider === 'groq' ? 'gsk_...' :
-                  'sk-ant-...'
-                } 
-                className="settings-input"
-                style={{
-                  flex: 1,
-                  background: 'var(--bg-page)',
-                  border: '1px solid var(--border-card)',
-                  borderRadius: '6px',
-                  padding: '0.5rem 0.75rem',
-                  fontSize: '0.85rem',
-                  fontFamily: 'var(--font-mono)',
-                  outline: 'none',
-                  color: 'var(--text-main)'
-                }}
-              />
-              <button 
-                onClick={() => {
-                  localStorage.setItem('openai_api_key', apiKey);
-                  localStorage.setItem('api_provider', provider);
-                  setIsSettingsOpen(false);
-                }} 
-                className="settings-save-btn"
-                style={{
-                  background: 'var(--accent-red)',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '0.5rem 1rem',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s'
-                }}
-              >
-                Save
-              </button>
-            </div>
+            <input 
+              type="password" 
+              value={apiKey} 
+              onChange={e => setApiKey(e.target.value)} 
+              placeholder={
+                provider === 'openai' ? 'sk-proj-...' :
+                provider === 'gemini' ? 'AIzaSy...' :
+                provider === 'groq' ? 'gsk_...' :
+                'sk-ant-...'
+              } 
+              className="settings-input"
+              style={{
+                background: 'var(--bg-page)',
+                border: '1px solid var(--border-card)',
+                borderRadius: '6px',
+                padding: '0.5rem 0.75rem',
+                fontSize: '0.85rem',
+                fontFamily: 'var(--font-mono)',
+                outline: 'none',
+                color: 'var(--text-main)',
+                width: '100%'
+              }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Model ID (Optional)</label>
+            <input 
+              type="text" 
+              value={selectedModel} 
+              onChange={e => setSelectedModel(e.target.value)} 
+              placeholder={
+                provider === 'openai' ? 'gpt-4o-mini' :
+                provider === 'gemini' ? 'gemini-2.5-flash' :
+                provider === 'groq' ? 'llama-3.1-8b-instant' :
+                'claude-3-5-haiku-20241022'
+              } 
+              className="settings-input"
+              style={{
+                background: 'var(--bg-page)',
+                border: '1px solid var(--border-card)',
+                borderRadius: '6px',
+                padding: '0.5rem 0.75rem',
+                fontSize: '0.85rem',
+                fontFamily: 'var(--font-mono)',
+                outline: 'none',
+                color: 'var(--text-main)',
+                width: '100%'
+              }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+            <button 
+              onClick={() => {
+                localStorage.setItem('openai_api_key', apiKey);
+                localStorage.setItem('api_provider', provider);
+                localStorage.setItem('api_model', selectedModel);
+                setIsSettingsOpen(false);
+              }} 
+              className="settings-save-btn"
+              style={{
+                background: 'var(--accent-red)',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '0.5rem 1rem',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+                width: '100%'
+              }}
+            >
+              Save Configuration
+            </button>
           </div>
 
           <div className="settings-desc" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>
