@@ -1,5 +1,8 @@
 # Luminate AI - Self-Updating RAG Research Assistant
 
+The application is hosted at: **[https://Jyotiraditya21-bug.github.io/LuminateAI/](https://Jyotiraditya21-bug.github.io/LuminateAI/)**
+
+
 Luminate AI is an advanced research assistant designed to navigate, synthesize, and answer queries about cutting-edge AI and machine learning literature. The system addresses the core limitations of standard Retrieval-Augmented Generation (RAG) systems: context fragmentation (inability to synthesize concepts across multiple documents or sections) and static knowledge cutoff (hallucinations on out-of-index, recent developments).
 
 To solve these challenges, Luminate AI implements a hybrid retrieval framework:
@@ -63,9 +66,8 @@ The RAPTOR + CRAG pipeline was evaluated against a Flat Baseline RAG (direct lea
 
 ---
 
-## Live Deployment
 
-The application is hosted at: **[https://Jyotiraditya21-bug.github.io/LuminateAI/](https://Jyotiraditya21-bug.github.io/LuminateAI/)**
+
 
 ### Offline Cache Mode
 The deployment includes a pre-populated offline cache of the 10 evaluation queries. Selecting any question in the query panel renders the pre-computed outputs and complete step-by-step developer traces immediately without requiring API keys or server setup.
@@ -93,17 +95,4 @@ npm run dev
 
 ---
 
-## LinkedIn Sharing Templates
 
-### Option 1: Algorithm-Optimized (Link in Comments)
-Add this text at the bottom of your post:
-"Live interactive demo and source code in the comments below!"
-
-Then paste this as the first comment on your post:
-"Live Demo: https://Jyotiraditya21-bug.github.io/LuminateAI/
-Code & Architecture: https://github.com/Jyotiraditya21-bug/LuminateAI"
-
-### Option 2: Direct Link
-Add this text at the end of your post:
-"Try the Live App: https://Jyotiraditya21-bug.github.io/LuminateAI/
-GitHub Repository: https://github.com/Jyotiraditya21-bug/LuminateAI"
