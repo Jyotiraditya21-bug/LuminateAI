@@ -62,7 +62,6 @@ body {
 
 /* Header styling matching the image with float animation */
 header {
-  animation: headerFloat 4.2s ease-in-out infinite;
   text-align: center;
   width: 100%;
   display: flex;
@@ -85,6 +84,7 @@ header {
   line-height: 1.15;
   margin-top: 0.15rem;
   text-shadow: 0 4px 16px rgba(243, 115, 60, 0.35), 0 1px 3px rgba(0, 0, 0, 0.05);
+  animation: headerFloat 4.2s ease-in-out infinite;
 }
 
 /* Input Row */
