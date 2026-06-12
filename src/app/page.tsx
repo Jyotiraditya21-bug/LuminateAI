@@ -155,7 +155,8 @@ async function proxyFetch(url: RequestInfo | URL, init?: RequestInit): Promise<R
         }
       }
 
-      const res = await fetch('/api/proxy', {
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+      const res = await fetch(`${basePath}/api/proxy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -195,7 +196,14 @@ async function callLLM(
         response_format: responseJson ? { type: 'json_object' } : undefined
       })
     });
-    if (!res.ok) throw new Error(`OpenAI API error: ${res.statusText}`);
+    if (!res.ok) {
+      let errMsg = res.statusText;
+      try {
+        const errData = await res.json();
+        errMsg = errData.error?.message || errData.error || JSON.stringify(errData);
+      } catch (_) {}
+      throw new Error(`OpenAI API error: ${errMsg}`);
+    }
     const data = await res.json();
     return data.choices[0].message.content || '';
   }
@@ -214,7 +222,14 @@ async function callLLM(
         response_format: responseJson ? { type: 'json_object' } : undefined
       })
     });
-    if (!res.ok) throw new Error(`Groq API error: ${res.statusText}`);
+    if (!res.ok) {
+      let errMsg = res.statusText;
+      try {
+        const errData = await res.json();
+        errMsg = errData.error?.message || errData.error || JSON.stringify(errData);
+      } catch (_) {}
+      throw new Error(`Groq API error: ${errMsg}`);
+    }
     const data = await res.json();
     return data.choices[0].message.content || '';
   }
@@ -236,7 +251,14 @@ async function callLLM(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
-    if (!res.ok) throw new Error(`Gemini API error: ${res.statusText}`);
+    if (!res.ok) {
+      let errMsg = res.statusText;
+      try {
+        const errData = await res.json();
+        errMsg = errData.error?.message || errData.error || JSON.stringify(errData);
+      } catch (_) {}
+      throw new Error(`Gemini API error: ${errMsg}`);
+    }
     const data = await res.json();
     return data.candidates[0].content.parts[0].text || '';
   }
@@ -256,7 +278,14 @@ async function callLLM(
         messages: [{ role: 'user', content: prompt }]
       })
     });
-    if (!res.ok) throw new Error(`Claude API error: ${res.statusText}`);
+    if (!res.ok) {
+      let errMsg = res.statusText;
+      try {
+        const errData = await res.json();
+        errMsg = errData.error?.message || errData.error || JSON.stringify(errData);
+      } catch (_) {}
+      throw new Error(`Claude API error: ${errMsg}`);
+    }
     const data = await res.json();
     return data.content[0].text || '';
   }
