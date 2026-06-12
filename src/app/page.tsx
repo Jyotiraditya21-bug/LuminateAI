@@ -153,7 +153,7 @@ async function callLLM(
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: customModel || 'llama-3.1-8b-instant',
+        model: customModel || 'llama-3.3-70b-versatile',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.1,
         response_format: responseJson ? { type: 'json_object' } : undefined
@@ -699,7 +699,7 @@ Answer:`;
               placeholder={
                 provider === 'openai' ? 'gpt-4o-mini' :
                 provider === 'gemini' ? 'gemini-2.5-flash' :
-                provider === 'groq' ? 'llama-3.1-8b-instant' :
+                provider === 'groq' ? 'llama-3.3-70b-versatile' :
                 'claude-3-5-haiku-20241022'
               } 
               className="settings-input"
@@ -746,7 +746,7 @@ Answer:`;
           <div className="settings-desc" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>
             {provider === 'openai' && 'OpenAI is supported natively. It runs 1536-dimensional semantic vector search over the index.'}
             {provider === 'gemini' && 'Google Gemini runs client-side using a fast TF-IDF keyword overlap search for retrieval, and gemini-2.5-flash for generation.'}
-            {provider === 'groq' && 'Groq completions run client-side using llama-3.1-8b-instant. (Note: Groq might block browser requests due to CORS settings depending on your browser).'}
+            {provider === 'groq' && 'Groq completions run client-side using llama-3.3-70b-versatile. (Note: Groq might block browser requests due to CORS settings depending on your browser).'}
             {provider === 'claude' && 'Anthropic Claude completions run client-side using claude-3-5-haiku. (Note: Anthropic API requests are blocked in browser client JS by CORS).'}
           </div>
         </div>

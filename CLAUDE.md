@@ -34,7 +34,7 @@ This guide outlines the build, test, and code conventions for the **Luminate AI*
 * **Serverless Architecture**: All core logic (vector retrieval, context grading, arXiv API requests, and LLM calls) must run **client-side in the browser** in `src/app/page.tsx`.
 
 ### 2. Model References
-* **Groq**: Use `llama-3.1-8b-instant` (do not use `llama3-8b-8192` as it is deprecated).
+* **Groq**: Use `llama-3.3-70b-versatile` (do not use `llama-3.1-8b-instant` or `llama3-8b-8192` as they are legacy/deprecated).
 * **Gemini**: Use `gemini-2.5-flash` (do not use `gemini-1.5-flash` as it is deprecated).
 * **OpenAI**: Use `gpt-4o-mini` for similarity embeddings and baseline calls.
 
