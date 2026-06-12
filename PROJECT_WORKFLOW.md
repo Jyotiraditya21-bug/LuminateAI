@@ -151,3 +151,20 @@ To deploy a Next.js application to GitHub Pages:
 2. `basePath: '/LuminateAI'` and `assetPrefix: '/LuminateAI/'` ensure that all paths point to the repository name on GitHub Pages (`https://<username>.github.io/LuminateAI/`).
 3. We dynamically toggle this prefix off during local development (`http://localhost:3000`), allowing developers to test locally without changing URLs.
 4. `.nojekyll` in the root of the deployment prevents GitHub from ignoring folders beginning with an underscore (such as Next.js's native `_next` folder).
+
+---
+
+## LinkedIn Sharing Templates
+
+### Option 1: Algorithm-Optimized (Link in Comments)
+Add this text at the bottom of your post:
+"Live interactive demo and source code in the comments below!"
+
+Then paste this as the first comment on your post:
+"Live Demo: https://Jyotiraditya21-bug.github.io/LuminateAI/
+Code & Architecture: https://github.com/Jyotiraditya21-bug/LuminateAI"
+
+### Option 2: Direct Link
+Add this text at the end of your post:
+"Try the Live App: https://Jyotiraditya21-bug.github.io/LuminateAI/
+GitHub Repository: https://github.com/Jyotiraditya21-bug/LuminateAI"

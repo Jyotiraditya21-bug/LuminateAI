@@ -90,3 +90,20 @@ npx tsx scripts/build-index.ts
 npx tsx scripts/eval.ts
 npm run dev
 ```
+
+---
+
+## LinkedIn Sharing Templates
+
+### Option 1: Algorithm-Optimized (Link in Comments)
+Add this text at the bottom of your post:
+"Live interactive demo and source code in the comments below!"
+
+Then paste this as the first comment on your post:
+"Live Demo: https://Jyotiraditya21-bug.github.io/LuminateAI/
+Code & Architecture: https://github.com/Jyotiraditya21-bug/LuminateAI"
+
+### Option 2: Direct Link
+Add this text at the end of your post:
+"Try the Live App: https://Jyotiraditya21-bug.github.io/LuminateAI/
+GitHub Repository: https://github.com/Jyotiraditya21-bug/LuminateAI"
