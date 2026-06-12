@@ -120,6 +120,22 @@ function keywordRetrieve(queryText: string, nodes: IndexNode[], k = 5): Array<{ 
 }
 
 async function proxyFetch(url: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const urlStr = typeof url === 'string' 
+    ? url 
+    : url instanceof URL 
+      ? url.toString() 
+      : (url as Request).url || url.toString();
+
+  const isStaticHost = typeof window !== 'undefined' && 
+    (window.location.hostname.endsWith('github.io') || 
+     window.location.hostname.endsWith('github.dev') ||
+     window.location.hostname.endsWith('pages.dev'));
+
+  if (isStaticHost) {
+    // Skip proxy fetch entirely on known static-only hosts like GitHub Pages
+    return fetch(url, init);
+  }
+
   try {
     let parsedBody = init?.body;
     if (typeof init?.body === 'string') {
@@ -127,13 +143,6 @@ async function proxyFetch(url: RequestInfo | URL, init?: RequestInit): Promise<R
         parsedBody = JSON.parse(init.body);
       } catch (_) {}
     }
-
-    // Safe string conversion for any RequestInfo or URL object
-    const urlStr = typeof url === 'string' 
-      ? url 
-      : url instanceof URL 
-        ? url.toString() 
-        : (url as Request).url || url.toString();
 
     // Serialize headers (handling Headers instance or array list)
     let headersObj: Record<string, string> = {};
@@ -162,7 +171,22 @@ async function proxyFetch(url: RequestInfo | URL, init?: RequestInit): Promise<R
         body: parsedBody
       })
     });
-    if (res.status !== 404 && res.status !== 405) return res;
+
+    const contentType = res.headers.get('content-type') || '';
+    
+    // Check if the response status or content type suggests static routing fallback
+    if (
+      res.status !== 404 && 
+      res.status !== 405 && 
+      res.status !== 403 && 
+      res.status !== 301 && 
+      res.status !== 302 && 
+      res.status !== 307 && 
+      res.status !== 308 && 
+      !contentType.includes('text/html')
+    ) {
+      return res;
+    }
   } catch (e) {
     console.warn('Proxy fetch failed, falling back to direct fetch', e);
   }
@@ -548,10 +572,16 @@ arXiv Search Query:`;
         arxivSearchQuery = apiQuery.split('+AND+').map(s => s.replace('all:', '')).join(' ');
         
         const url = `https://export.arxiv.org/api/query?search_query=${apiQuery}&start=0&max_results=5&sortBy=relevance`;
-        const res = await proxyFetch(url);
-        if (res.ok) {
-          const xmlText = await res.text();
-          livePapers = parseArxivXml(xmlText);
+        try {
+          const res = await proxyFetch(url);
+          if (res.ok) {
+            const xmlText = await res.text();
+            livePapers = parseArxivXml(xmlText);
+          } else {
+            console.warn(`arXiv API query failed with status: ${res.status}`);
+          }
+        } catch (arxivErr) {
+          console.warn('arXiv search skipped or failed due to network/CORS error:', arxivErr);
         }
       }
 
@@ -654,10 +684,23 @@ Answer:`;
       setBlocks(prev => [...prev, newBlock]);
     } catch (err: any) {
       console.error(err);
+      let errMsg = err.message || 'Failed to generate response.';
+      const isGitHubPages = typeof window !== 'undefined' && window.location.hostname.endsWith('github.io');
+      
+      const isNetworkError = errMsg.includes('Failed to fetch') || 
+                            errMsg.includes('fetch failed') || 
+                            errMsg.includes('NetworkError') || 
+                            errMsg.includes('Connection error') ||
+                            errMsg.includes('APIConnectionError');
+                            
+      if (isGitHubPages && isNetworkError && (provider === 'openai' || provider === 'groq' || provider === 'claude')) {
+        errMsg = `CORS Restriction: Direct browser requests to ${provider === 'openai' ? 'OpenAI' : provider === 'groq' ? 'Groq' : 'Claude'} are blocked by browser CORS security policy on static sites (like GitHub Pages). Please run Luminate AI locally using 'npm run dev' to use the serverless proxy, or switch the provider to Google Gemini (which supports browser CORS requests natively).`;
+      }
+
       const errorBlock: QABlock = {
         id: `block_${Date.now()}`,
         query: currentQuery,
-        answer: `Error: ${err.message || 'Failed to generate response.'}`,
+        answer: `Error: ${errMsg}`,
         citations: [],
         trace: {
           retrievedNodes: [],
