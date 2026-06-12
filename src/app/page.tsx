@@ -438,7 +438,7 @@ export default function Home() {
           isTraceOpen: true
         };
 
-        setBlocks(prev => [...prev, newBlock]);
+        setBlocks(prev => [newBlock, ...prev]);
         setIsLoading(false);
         return;
       } else {
@@ -647,7 +647,7 @@ Answer:`;
         isTraceOpen: true
       };
 
-      setBlocks(prev => [...prev, newBlock]);
+      setBlocks(prev => [newBlock, ...prev]);
     } catch (err: any) {
       console.error(err);
       let errMsg = err.message || 'Failed to generate response.';
@@ -676,7 +676,7 @@ Answer:`;
         },
         isTraceOpen: false
       };
-      setBlocks(prev => [...prev, errorBlock]);
+      setBlocks(prev => [errorBlock, ...prev]);
     } finally {
       setIsLoading(false);
     }
@@ -962,6 +962,17 @@ Answer:`;
 
       {/* QA Blocks Feed */}
       <section style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        {/* Loading placeholder */}
+        {isLoading && (
+          <div className="loading-box">
+            <div className="loading-dots">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+        )}
+
         {blocks.map(block => (
           <div key={block.id} className="qa-block">
             {/* Query Title */}
@@ -1095,17 +1106,6 @@ Answer:`;
             </div>
           </div>
         ))}
-
-        {/* Loading placeholder */}
-        {isLoading && (
-          <div className="loading-box">
-            <div className="loading-dots">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-          </div>
-        )}
 
         <div ref={chatEndRef} />
       </section>
