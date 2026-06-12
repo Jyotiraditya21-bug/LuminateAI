@@ -43,20 +43,53 @@ interface QABlock {
 
 const matchCachedQuery = (queryText: string, cachedData: any[]): any | null => {
   const clean = queryText.toLowerCase().trim();
+  
+  // Try exact check first (ignoring punctuation at the end)
+  const cleanQuery = clean.replace(/[?.]/g, '').trim();
+  
+  const exactMap: { [key: string]: string } = {
+    'explain the core concept and benefits of races (recursive automated composition for environment scaling) as proposed in the text': 'Q1',
+    'explain the core concept and benefits of races recursive automated composition for environment scaling as proposed in the text': 'Q1',
+    'what are the main limitations of doc-to-lora, and how does doc-to-atom (doc2atom) address them': 'Q2',
+    'what are the main limitations of doc-to-lora and how does doc-to-atom doc2atom address them': 'Q2',
+    'explain the mechanism of agentic procedural policy optimization (appo) for reinforcement learning': 'Q3',
+    'explain the mechanism of agentic procedural policy optimization appo for reinforcement learning': 'Q3',
+    'how does context-driven incremental compression (c-dic) handle multi-turn dialogue context without information loss': 'Q4',
+    'how does context-driven incremental compression c-dic handle multi-turn dialogue context without information loss': 'Q4',
+    'what is the core proposal of reroute for vision-language models visual token reduction': 'Q5',
+    'how does via-sd improve speculative decoding efficiency over traditional draft-verify methods': 'Q6',
+    'what is the mixture of experts (moe) architecture and routing design of deepseek-v3': 'Q7',
+    'what is the mixture of experts moe architecture and routing design of deepseek-v3': 'Q7',
+    "what are the key technical details and inference-time search mechanism of openai's o1 reasoning model series": 'Q8',
+    "what are the key technical details and inference-time search mechanism of openai o1 reasoning model series": 'Q8',
+    'how does gemini 1.5 pro achieve its 1-million-token context window technically': 'Q9',
+    'how does gemini 1.5 pro achieve its 1 million token context window technically': 'Q9',
+    'describe the design of the swarm multi-agent orchestration framework open-sourced by openai': 'Q10',
+    'describe the design of the swarm multi-agent orchestration framework opensourced by openai': 'Q10'
+  };
+
+  const matchedId = exactMap[cleanQuery];
+  if (matchedId) {
+    const cached = cachedData.find(r => r.questionId === matchedId && r.pipeline === 'RAPTOR+CRAG');
+    if (cached) return cached;
+  }
+
+  // Fallback to keyword matching
   const keywords = [
-    { id: 'Q1', keys: ['races', 'recursive automated composition'] },
+    { id: 'Q1', keys: ['races', 'recursive automated composition', 'lego bricks'] },
     { id: 'Q2', keys: ['doc-to-lora', 'doc-to-atom', 'doc2atom'] },
-    { id: 'Q3', keys: ['appo', 'agentic procedural policy'] },
-    { id: 'Q4', keys: ['c-dic', 'context-driven', 'incremental compression'] },
-    { id: 'Q5', keys: ['reroute', 'vision-language', 'visual token'] },
-    { id: 'Q6', keys: ['via-sd', 'speculative decoding'] },
-    { id: 'Q7', keys: ['deepseek', 'moe', 'mixture of experts'] },
-    { id: 'Q8', keys: ['o1', 'inference-time search', 'reasoning model'] },
-    { id: 'Q9', keys: ['gemini', '1-million-token', 'million token'] },
-    { id: 'Q10', keys: ['swarm', 'multi-agent orchestration'] }
+    { id: 'Q3', keys: ['appo', 'agentic procedural policy', 'policy optimization'] },
+    { id: 'Q4', keys: ['c-dic', 'context-driven', 'incremental compression', 'multi-turn dialogue'] },
+    { id: 'Q5', keys: ['reroute', 'vision-language', 'visual token', 'token reduction'] },
+    { id: 'Q6', keys: ['via-sd', 'speculative decoding', 'draft-verify'] },
+    { id: 'Q7', keys: ['deepseek', 'moe', 'mixture of experts', 'deepseek-v3'] },
+    { id: 'Q8', keys: ['o1', 'inference-time search', 'openai o1', 'reasoning model'] },
+    { id: 'Q9', keys: ['gemini', '1-million-token', 'million token', 'gemini 1.5'] },
+    { id: 'Q10', keys: ['swarm', 'multi-agent orchestration', 'openai swarm'] }
   ];
+  
   const matched = keywords.find(item => 
-    item.keys.some(key => clean.includes(key))
+    item.keys.some(key => clean.includes(key.toLowerCase()))
   );
   if (matched) {
     return cachedData.find(r => r.questionId === matched.id && r.pipeline === 'RAPTOR+CRAG') || null;
@@ -193,21 +226,46 @@ export default function Home() {
     const savedProvider = localStorage.getItem('api_provider') as any;
     if (savedProvider) setProvider(savedProvider || 'openai');
 
-    // Load Index from public asset
-    fetch('index.json')
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.nodes) {
-          setIndexNodes(data.nodes);
+    // Load Index from public asset with basePath fallback
+    const loadIndexData = async () => {
+      try {
+        const res = await fetch('/LuminateAI/index.json');
+        if (!res.ok) throw new Error('status ' + res.status);
+        const data = await res.json();
+        if (data && data.nodes) setIndexNodes(data.nodes);
+      } catch (e) {
+        console.warn('Failed absolute index.json load, trying relative...');
+        try {
+          const res = await fetch('index.json');
+          const data = await res.json();
+          if (data && data.nodes) setIndexNodes(data.nodes);
+        } catch (err) {
+          console.error('All index load attempts failed:', err);
         }
-      })
-      .catch(err => console.error('Failed to load index.json:', err));
+      }
+    };
 
-    // Load Eval Results from public asset
-    fetch('eval-results.json')
-      .then(res => res.json())
-      .then(data => setEvalResults(data))
-      .catch(err => console.error('Failed to load eval-results.json:', err));
+    // Load Eval Results from public asset with basePath fallback
+    const loadEvalData = async () => {
+      try {
+        const res = await fetch('/LuminateAI/eval-results.json');
+        if (!res.ok) throw new Error('status ' + res.status);
+        const data = await res.json();
+        setEvalResults(data);
+      } catch (e) {
+        console.warn('Failed absolute eval-results.json load, trying relative...');
+        try {
+          const res = await fetch('eval-results.json');
+          const data = await res.json();
+          setEvalResults(data);
+        } catch (err) {
+          console.error('All eval load attempts failed:', err);
+        }
+      }
+    };
+
+    loadIndexData();
+    loadEvalData();
   }, []);
 
   // Auto-scroll disabled per user request
@@ -238,12 +296,8 @@ export default function Home() {
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim() || isLoading) return;
-
-    const currentQuery = query;
-    setQuery('');
+  const executeSearch = async (currentQuery: string) => {
+    if (!currentQuery.trim() || isLoading) return;
     setIsLoading(true);
 
     const keyToUse = apiKey || '';
@@ -502,6 +556,19 @@ Answer:`;
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query.trim() || isLoading) return;
+    const currentQuery = query;
+    setQuery('');
+    await executeSearch(currentQuery);
+  };
+
+  const handleSelectQuery = async (queryText: string) => {
+    setQuery('');
+    await executeSearch(queryText);
+  };
+
   const toggleTrace = (id: string) => {
     setBlocks(prev =>
       prev.map(b => (b.id === id ? { ...b, isTraceOpen: !b.isTraceOpen } : b))
@@ -638,32 +705,51 @@ Answer:`;
       {/* Suggestions Row for quick-test in case query is empty */}
       {blocks.length === 0 && !isLoading && (
         <>
-          <div className="suggestions-row">
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', alignSelf: 'center' }}>Try:</span>
-            <button 
-              onClick={() => setQuery("Explain the core indexing approach of RAPTOR.")}
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border-card)', borderRadius: '18px', padding: '0.4rem 0.8rem', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.85rem', transition: 'all 0.2s' }}
-              onMouseOver={e => e.currentTarget.style.borderColor = 'var(--text-secondary)'}
-              onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border-card)'}
-            >
-              RAPTOR Indexing Approach
-            </button>
-            <button 
-              onClick={() => setQuery("What is the CRAG fallback mechanism for out-of-index queries?")}
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border-card)', borderRadius: '18px', padding: '0.4rem 0.8rem', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.85rem', transition: 'all 0.2s' }}
-              onMouseOver={e => e.currentTarget.style.borderColor = 'var(--text-secondary)'}
-              onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border-card)'}
-            >
-              CRAG Fallback Mechanism
-            </button>
-            <button 
-              onClick={() => setQuery("Who published the DeepSeek-V3 paper and what is its routing design?")}
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border-card)', borderRadius: '18px', padding: '0.4rem 0.8rem', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.85rem', transition: 'all 0.2s' }}
-              onMouseOver={e => e.currentTarget.style.borderColor = 'var(--text-secondary)'}
-              onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border-card)'}
-            >
-              DeepSeek-V3 Routing (arXiv Live)
-            </button>
+          <div className="eval-questions-container">
+            <h3 className="eval-questions-title">Try Pre-computed Evaluation Queries (Offline Cache)</h3>
+            <p className="eval-questions-subtitle">Select any query below to see its cached answer, CRAG corrective fallback status, and complete retrieval trace log immediately.</p>
+            
+            <div className="eval-category-section">
+              <div className="eval-category-title">Category A: In-Index RAG Queries</div>
+              <div className="eval-questions-grid">
+                <button onClick={() => handleSelectQuery("Explain the core concept and benefits of RACES (Recursive Automated Composition for Environment Scaling) as proposed in the text.")}>
+                  <strong>Q1:</strong> RACES Concept & Benefits
+                </button>
+                <button onClick={() => handleSelectQuery("What are the main limitations of Doc-to-LoRA, and how does Doc-to-Atom (Doc2Atom) address them?")}>
+                  <strong>Q2:</strong> Doc-to-LoRA vs Doc-to-Atom
+                </button>
+                <button onClick={() => handleSelectQuery("Explain the mechanism of Agentic Procedural Policy Optimization (APPO) for reinforcement learning.")}>
+                  <strong>Q3:</strong> APPO Mechanism for RL
+                </button>
+                <button onClick={() => handleSelectQuery("How does Context-Driven Incremental Compression (C-DIC) handle multi-turn dialogue context without information loss?")}>
+                  <strong>Q4:</strong> C-DIC Dialogue Compression
+                </button>
+                <button onClick={() => handleSelectQuery("What is the core proposal of Reroute for Vision-Language Models visual token reduction?")}>
+                  <strong>Q5:</strong> Reroute visual token routing
+                </button>
+                <button onClick={() => handleSelectQuery("How does VIA-SD improve speculative decoding efficiency over traditional draft-verify methods?")}>
+                  <strong>Q6:</strong> VIA-SD Speculative Decoding
+                </button>
+              </div>
+            </div>
+
+            <div className="eval-category-section" style={{ marginTop: '0.75rem' }}>
+              <div className="eval-category-title">Category B: Out-of-Index Queries (Live arXiv Fallback)</div>
+              <div className="eval-questions-grid">
+                <button onClick={() => handleSelectQuery("What is the mixture of experts (MoE) architecture and routing design of DeepSeek-V3?")}>
+                  <strong>Q7:</strong> DeepSeek-V3 Routing & MoE
+                </button>
+                <button onClick={() => handleSelectQuery("What are the key technical details and inference-time search mechanism of OpenAI's o1 reasoning model series?")}>
+                  <strong>Q8:</strong> OpenAI o1 Reasoning Series
+                </button>
+                <button onClick={() => handleSelectQuery("How does Gemini 1.5 Pro achieve its 1-million-token context window technically?")}>
+                  <strong>Q9:</strong> Gemini 1.5 Pro 1M Context
+                </button>
+                <button onClick={() => handleSelectQuery("Describe the design of the Swarm multi-agent orchestration framework open-sourced by OpenAI.")}>
+                  <strong>Q10:</strong> OpenAI Swarm Orchestration
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="feature-grid">
