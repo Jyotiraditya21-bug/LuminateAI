@@ -120,56 +120,51 @@ function keywordRetrieve(queryText: string, nodes: IndexNode[], k = 5): Array<{ 
 }
 
 async function proxyFetch(url: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const isLocal = typeof window !== 'undefined' && 
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-    
-  if (isLocal) {
-    try {
-      let parsedBody = init?.body;
-      if (typeof init?.body === 'string') {
-        try {
-          parsedBody = JSON.parse(init.body);
-        } catch (_) {}
-      }
-
-      // Safe string conversion for any RequestInfo or URL object
-      const urlStr = typeof url === 'string' 
-        ? url 
-        : url instanceof URL 
-          ? url.toString() 
-          : (url as Request).url || url.toString();
-
-      // Serialize headers (handling Headers instance or array list)
-      let headersObj: Record<string, string> = {};
-      if (init?.headers) {
-        if (init.headers instanceof Headers) {
-          init.headers.forEach((value, key) => {
-            headersObj[key] = value;
-          });
-        } else if (Array.isArray(init.headers)) {
-          init.headers.forEach(([key, value]) => {
-            headersObj[key] = value;
-          });
-        } else {
-          headersObj = { ...init.headers } as Record<string, string>;
-        }
-      }
-
-      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
-      const res = await fetch(`${basePath}/api/proxy`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url: urlStr,
-          method: init?.method || 'GET',
-          headers: headersObj,
-          body: parsedBody
-        })
-      });
-      if (res.status !== 404) return res;
-    } catch (e) {
-      console.warn('Proxy fetch failed, falling back to direct fetch', e);
+  try {
+    let parsedBody = init?.body;
+    if (typeof init?.body === 'string') {
+      try {
+        parsedBody = JSON.parse(init.body);
+      } catch (_) {}
     }
+
+    // Safe string conversion for any RequestInfo or URL object
+    const urlStr = typeof url === 'string' 
+      ? url 
+      : url instanceof URL 
+        ? url.toString() 
+        : (url as Request).url || url.toString();
+
+    // Serialize headers (handling Headers instance or array list)
+    let headersObj: Record<string, string> = {};
+    if (init?.headers) {
+      if (init.headers instanceof Headers) {
+        init.headers.forEach((value, key) => {
+          headersObj[key] = value;
+        });
+      } else if (Array.isArray(init.headers)) {
+        init.headers.forEach(([key, value]) => {
+          headersObj[key] = value;
+        });
+      } else {
+        headersObj = { ...init.headers } as Record<string, string>;
+      }
+    }
+
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+    const res = await fetch(`${basePath}/api/proxy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: urlStr,
+        method: init?.method || 'GET',
+        headers: headersObj,
+        body: parsedBody
+      })
+    });
+    if (res.status !== 404) return res;
+  } catch (e) {
+    console.warn('Proxy fetch failed, falling back to direct fetch', e);
   }
   
   return fetch(url, init);
