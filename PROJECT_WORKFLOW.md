@@ -47,6 +47,11 @@ Self-Updating_RAG/
 
 ## 3. Workflow Diagrams
 
+### Visual System Flowchart
+Below is the visual overview of Luminate AI's two-stage architecture:
+
+![Luminate AI Architecture Flow Diagram](public/architecture-flow.png)
+
 ### Workflow A: The Offline Indexing Pipeline (`scripts/build-index.ts`)
 This pipeline runs once on the developer's machine. It ingests arXiv papers, builds the tree structure, and outputs a single static JSON index file containing all chunks, hierarchical summaries, and embeddings.
 
