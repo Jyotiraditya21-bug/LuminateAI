@@ -5,6 +5,7 @@ import OpenAI from 'openai';
 import { retrieveNodes, IndexNode } from '@/lib/retrieve';
 import { gradeContext, fetchLiveArxiv, ArxivPaper, parseArxivXml } from '@/lib/grade';
 import { generateAnswer, Citation } from '@/lib/generate';
+import evalResultsData from '../../public/eval-results.json';
 
 interface RetrievedNode {
   id: string;
@@ -213,7 +214,7 @@ export default function Home() {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const [indexNodes, setIndexNodes] = useState<IndexNode[]>([]);
-  const [evalResults, setEvalResults] = useState<any[]>([]);
+  const [evalResults, setEvalResults] = useState<any[]>(evalResultsData);
   const [apiKey, setApiKey] = useState('');
   const [provider, setProvider] = useState<'openai' | 'gemini' | 'groq' | 'claude'>('openai');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -245,27 +246,7 @@ export default function Home() {
       }
     };
 
-    // Load Eval Results from public asset with basePath fallback
-    const loadEvalData = async () => {
-      try {
-        const res = await fetch('/LuminateAI/eval-results.json');
-        if (!res.ok) throw new Error('status ' + res.status);
-        const data = await res.json();
-        setEvalResults(data);
-      } catch (e) {
-        console.warn('Failed absolute eval-results.json load, trying relative...');
-        try {
-          const res = await fetch('eval-results.json');
-          const data = await res.json();
-          setEvalResults(data);
-        } catch (err) {
-          console.error('All eval load attempts failed:', err);
-        }
-      }
-    };
-
     loadIndexData();
-    loadEvalData();
   }, []);
 
   // Auto-scroll disabled per user request
@@ -583,88 +564,138 @@ Answer:`;
 
   return (
     <div className="app-container">
-      {/* Settings Wrapper */}
-      <div className="settings-wrapper">
+      {/* Header matching reference design with Luminate AI title and inline API settings */}
+      <header style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1.5rem', width: '100%' }}>
+        <h1 className="app-header-title">Luminate AI</h1>
         <button 
           onClick={() => setIsSettingsOpen(!isSettingsOpen)} 
-          className="settings-toggle-btn"
+          className="settings-toggle-btn-inline"
+          style={{
+            marginTop: '0.75rem',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-card)',
+            borderRadius: '20px',
+            padding: '0.5rem 1.25rem',
+            color: 'var(--text-secondary)',
+            fontFamily: 'var(--font-sans)',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.04)',
+            transition: 'all 0.2s ease',
+            outline: 'none'
+          }}
         >
           {/* Settings cog SVG icon */}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="3"></circle>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
           </svg>
-          API Key
+          {isSettingsOpen ? 'Hide API Configuration' : 'Configure Custom API Key'}
         </button>
-        {isSettingsOpen && (
-          <div className="settings-panel">
-            <div className="settings-label">API Configuration</div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Provider</label>
-              <select 
-                value={provider} 
-                onChange={e => setProvider(e.target.value as any)}
+      </header>
+
+      {/* Inline Settings Panel */}
+      {isSettingsOpen && (
+        <div className="settings-card-inline" style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-card)',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1rem',
+          marginBottom: '1rem',
+          animation: 'fadeInPanel 0.2s ease-out'
+        }}>
+          <div className="settings-label" style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>API Configuration</div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Provider</label>
+            <select 
+              value={provider} 
+              onChange={e => setProvider(e.target.value as any)}
+              style={{
+                background: 'var(--bg-page)',
+                border: '1px solid var(--border-card)',
+                borderRadius: '6px',
+                padding: '0.5rem',
+                fontSize: '0.85rem',
+                fontFamily: 'var(--font-sans)',
+                outline: 'none',
+                color: 'var(--text-main)',
+                width: '100%'
+              }}
+            >
+              <option value="openai">OpenAI</option>
+              <option value="gemini">Google Gemini</option>
+              <option value="groq">Groq</option>
+              <option value="claude">Anthropic Claude</option>
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>API Key</label>
+            <div className="settings-input-row" style={{ display: 'flex', gap: '0.5rem' }}>
+              <input 
+                type="password" 
+                value={apiKey} 
+                onChange={e => setApiKey(e.target.value)} 
+                placeholder={
+                  provider === 'openai' ? 'sk-proj-...' :
+                  provider === 'gemini' ? 'AIzaSy...' :
+                  provider === 'groq' ? 'gsk_...' :
+                  'sk-ant-...'
+                } 
+                className="settings-input"
                 style={{
+                  flex: 1,
                   background: 'var(--bg-page)',
                   border: '1px solid var(--border-card)',
                   borderRadius: '6px',
-                  padding: '0.5rem',
+                  padding: '0.5rem 0.75rem',
                   fontSize: '0.85rem',
-                  fontFamily: 'var(--font-sans)',
+                  fontFamily: 'var(--font-mono)',
                   outline: 'none',
                   color: 'var(--text-main)'
                 }}
+              />
+              <button 
+                onClick={() => {
+                  localStorage.setItem('openai_api_key', apiKey);
+                  localStorage.setItem('api_provider', provider);
+                  setIsSettingsOpen(false);
+                }} 
+                className="settings-save-btn"
+                style={{
+                  background: 'var(--accent-red)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '0.5rem 1rem',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
               >
-                <option value="openai">OpenAI</option>
-                <option value="gemini">Google Gemini</option>
-                <option value="groq">Groq</option>
-                <option value="claude">Anthropic Claude</option>
-              </select>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>API Key</label>
-              <div className="settings-input-row">
-                <input 
-                  type="password" 
-                  value={apiKey} 
-                  onChange={e => setApiKey(e.target.value)} 
-                  placeholder={
-                    provider === 'openai' ? 'sk-proj-...' :
-                    provider === 'gemini' ? 'AIzaSy...' :
-                    provider === 'groq' ? 'gsk_...' :
-                    'sk-ant-...'
-                  } 
-                  className="settings-input"
-                />
-                <button 
-                  onClick={() => {
-                    localStorage.setItem('openai_api_key', apiKey);
-                    localStorage.setItem('api_provider', provider);
-                    setIsSettingsOpen(false);
-                  }} 
-                  className="settings-save-btn"
-                >
-                  Save
-                </button>
-              </div>
-            </div>
-
-            <div className="settings-desc">
-              {provider === 'openai' && 'OpenAI is supported natively. It runs 1536-dimensional semantic vector search over the index.'}
-              {provider === 'gemini' && 'Google Gemini runs client-side using a fast TF-IDF keyword overlap search for retrieval, and gemini-1.5-flash for generation.'}
-              {provider === 'groq' && 'Groq completions run client-side using llama3-8b-8192. (Note: Groq might block browser requests due to CORS settings depending on your browser).'}
-              {provider === 'claude' && 'Anthropic Claude completions run client-side using claude-3-5-haiku. (Note: Anthropic API requests are blocked in browser client JS by CORS).'}
+                Save
+              </button>
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Header matching reference design with Luminate AI title */}
-      <header style={{ marginBottom: '1rem' }}>
-        <h1 className="app-header-title">Luminate AI</h1>
-      </header>
+          <div className="settings-desc" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>
+            {provider === 'openai' && 'OpenAI is supported natively. It runs 1536-dimensional semantic vector search over the index.'}
+            {provider === 'gemini' && 'Google Gemini runs client-side using a fast TF-IDF keyword overlap search for retrieval, and gemini-1.5-flash for generation.'}
+            {provider === 'groq' && 'Groq completions run client-side using llama3-8b-8192. (Note: Groq might block browser requests due to CORS settings depending on your browser).'}
+            {provider === 'claude' && 'Anthropic Claude completions run client-side using claude-3-5-haiku. (Note: Anthropic API requests are blocked in browser client JS by CORS).'}
+          </div>
+        </div>
+      )}
 
       {/* Input Row section */}
       <section className="input-section">
