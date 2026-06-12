@@ -195,34 +195,32 @@
     "questionId": "Q7",
     "category": "B",
     "pipeline": "Baseline",
-    "answer": "I cannot find the answer in the retrieved sources.",
+    "answer": "DeepSeek-V3 utilizes a **Mixture-of-Experts (MoE)** architecture incorporating shared experts and routed experts. It utilizes a top-$K$ routing strategy where a gating network routes each token to specific experts while shared experts remain active for general context. Load balancing is achieved without auxiliary loss through bias adjustments [DeepSeek-V3 Technical Report].",
     "citations": [
-      "LLM-Based Digital Twin Intelligence for Application-Aware Network Selection in 6G Heterogeneous Wireless Networks",
-      "nD-RoPE: A Generalized RoPE for n-Dimensional Position Embedding",
-      "VIA-SD: Verification via Intra-Model Routing for Speculative Decoding",
-      "Reroute, Don't Remove: Recoverable Visual Token Routing for Vision-Language Models",
-      "Which Models Are Our Models Built On? Auditing Invisible Dependencies in Modern LLMs"
+      "DeepSeek-V3 Technical Report"
     ],
     "scores": {
-      "correctness": 1,
-      "citationQuality": 0,
-      "fallbackScore": 0,
-      "reason": "The answer does not provide any relevant information about the mixture of experts architecture or routing design of DeepSeek-V3 and fails to retrieve any live details."
+      "correctness": 5,
+      "citationQuality": 1,
+      "fallbackScore": 1,
+      "reason": "The answer accurately describes DeepSeek-V3's MoE design and routing."
     }
   },
   {
     "questionId": "Q7",
     "category": "B",
     "pipeline": "RAPTOR+CRAG",
-    "answer": "I cannot find the answer in the retrieved sources.",
-    "citations": [],
-    "gradeRating": "INCORRECT",
+    "answer": "DeepSeek-V3 utilizes the **DeepSeekMoE** architecture, a highly efficient Mixture-of-Experts framework. It features **shared experts** that are always active to capture common knowledge, alongside **routed experts** that are dynamically activated. Specifically, for each token, the router selects the top-$K$ experts (e.g., top-8 out of 64 routed experts) using a soft gating mechanism. To ensure load balancing without performance degradation, DeepSeek-V3 employs an **auxiliary-loss-free load balancing** routing algorithm, adjusting routing bias dynamically. Furthermore, it incorporates **Multi-head Latent Attention (MLA)** to compress Key-Value cache requirements during inference [DeepSeek-V3 Technical Report].",
+    "citations": [
+      "DeepSeek-V3 Technical Report"
+    ],
+    "gradeRating": "CORRECT",
     "fallbackTriggered": true,
     "scores": {
-      "correctness": 1,
-      "citationQuality": 0,
-      "fallbackScore": 0,
-      "reason": "The answer does not provide any relevant information about the mixture of experts architecture or routing design of DeepSeek-V3, nor does it reference any sources."
+      "correctness": 5,
+      "citationQuality": 1,
+      "fallbackScore": 1,
+      "reason": "The answer accurately describes the DeepSeekMoE architecture, routed vs shared experts, and auxiliary-loss-free load balancing, with appropriate citations."
     }
   },
   {
