@@ -166,7 +166,7 @@ async function proxyFetch(url: RequestInfo | URL, init?: RequestInit): Promise<R
           body: parsedBody
         })
       });
-      if (res.ok) return res;
+      if (res.status !== 404) return res;
     } catch (e) {
       console.warn('Proxy fetch failed, falling back to direct fetch', e);
     }
