@@ -1,0 +1,336 @@
+[
+  {
+    "questionId": "Q1",
+    "category": "A",
+    "pipeline": "Baseline",
+    "answer": "**RACES** (Recursive Automated Composition for Environment Scaling) is a framework designed to enhance **Reinforcement Learning (RL)** by conceptualizing verifiable environments as composable building blocks. The core idea is that environments can be recursively combined when the output type of one environment matches the input type of another, allowing for automatic fusion into new environments. This recursive composition is facilitated by a set of operators, including **SEQUENTIAL**, **PARALLEL**, **SORT**, and **SELECT**, which induce diverse reasoning patterns.\n\nThe benefits of RACES are significant: it improves reasoning generalization in RL training by allowing the use of composite environments, which leads to enhanced performance on unseen benchmarks. For instance, RACES improved the performance of models like **DeepSeek-R1-Distill-Qwen-14B** and **Qwen3-14B** by several points, demonstrating that it can achieve results comparable to training on a larger number of individual environments while using only a fraction of them (50 base environments instead of 300). This efficiency in environment utilization is a key advantage of the RACES framework, promoting scalable reasoning generalization in RL applications [Verifiable Environments Are LEGO Bricks: Recursive Composition for Reasoning Generalization].",
+    "citations": [
+      "Verifiable Environments Are LEGO Bricks: Recursive Composition for Reasoning Generalization"
+    ],
+    "scores": {
+      "correctness": 5,
+      "citationQuality": 1,
+      "fallbackScore": "N/A",
+      "reason": "The answer accurately explains the core concept and benefits of RACES, and it correctly cites the relevant source from the retrieved list."
+    }
+  },
+  {
+    "questionId": "Q1",
+    "category": "A",
+    "pipeline": "RAPTOR+CRAG",
+    "answer": "**RACES** (Recursive Automated Composition for Environment Scaling) is a framework designed to enhance **Reinforcement Learning (RL)** by treating verifiable environments as composable building blocks. The core concept is that environments can be recursively assembled when the output type of one environment matches the input type of another, allowing for automatic fusion into new environments. This recursive composition is facilitated through a set of composition operators, including **SEQUENTIAL**, **PARALLEL**, **SORT**, and **SELECT**, which generate diverse reasoning patterns.\n\nThe benefits of RACES are significant: it allows for efficient scaling of environments, achieving comparable performance to training on 300 individual environments using only 50 base environments. This efficiency is demonstrated by improvements in the performance of models like **DeepSeek-R1-Distill-Qwen-14B** and **Qwen3-14B** on various benchmarks, enhancing reasoning generalization without the linear scaling limitations of traditional methods. Overall, RACES provides a robust approach to improving the reasoning capabilities of **Large Language Models (LLMs)** through scalable environment composition, as detailed in the paper titled \"[Verifiable Environments Are LEGO Bricks: Recursive Composition for Reasoning Generalization].\"",
+    "citations": [
+      "Verifiable Environments Are LEGO Bricks: Recursive Composition for Reasoning Generalization"
+    ],
+    "gradeRating": "CORRECT",
+    "fallbackTriggered": false,
+    "scores": {
+      "correctness": 5,
+      "citationQuality": 1,
+      "fallbackScore": "N/A",
+      "reason": "The answer accurately explains the core concept and benefits of RACES, and it correctly cites the relevant source from the retrieved list."
+    }
+  },
+  {
+    "questionId": "Q2",
+    "category": "A",
+    "pipeline": "Baseline",
+    "answer": "The main limitations of **Doc-to-LoRA** include the generation of a single monolithic adapter for all queries, which leads to **irrelevant-query interference**, **limited compositional recall**, and **poor scalability** for long-document reasoning. This approach does not effectively handle the diverse needs of different queries, resulting in suboptimal performance when dealing with complex document understanding tasks.\n\n**Doc-to-Atom (Doc2Atom)** addresses these limitations by introducing a **compositional parametric memory framework** that decomposes documents into semantically typed **knowledge atoms**. Each atom is compiled into an independent **micro-LoRA adapter** and a retrieval key. During inference, a lightweight **query router** selects and assembles only the relevant atoms into a query-specific adapter, which is then injected into a frozen base model. This method enhances compositional recall and scalability while reducing memory costs associated with document internalization, thereby outperforming **Doc-to-LoRA** in various QA benchmarks [Doc-to-Atom: Learning to Compile and Compose Memory Atoms].",
+    "citations": [
+      "Doc-to-Atom: Learning to Compile and Compose Memory Atoms"
+    ],
+    "scores": {
+      "correctness": 5,
+      "citationQuality": 1,
+      "fallbackScore": "N/A",
+      "reason": "The answer accurately describes the limitations of Doc-to-LoRA and how Doc-to-Atom addresses them, while correctly citing the relevant source."
+    }
+  },
+  {
+    "questionId": "Q2",
+    "category": "A",
+    "pipeline": "RAPTOR+CRAG",
+    "answer": "The main limitations of **Doc-to-LoRA** include the generation of a single monolithic adapter for all queries, which results in **irrelevant-query interference**, **limited compositional recall**, and **poor scalability** for long-document reasoning. This approach does not effectively manage the diverse information needs of different queries, leading to suboptimal performance in document understanding and multi-step reasoning tasks [Doc-to-Atom: Learning to Compile and Compose Memory Atoms].\n\n**Doc-to-Atom (Doc2Atom)** addresses these limitations by introducing a **compositional parametric memory framework** that decomposes documents into **semantically typed knowledge atoms**. Each atom is compiled into an independent **micro-LoRA adapter** and a provenance retrieval key. During inference, a **lightweight query router** selects and assembles only the relevant atoms into a query-specific adapter, thereby enhancing the model's ability to handle diverse queries and improving scalability. This method significantly reduces memory costs associated with document internalization while outperforming Doc-to-LoRA baselines across various QA benchmarks [Doc-to-Atom: Learning to Compile and Compose Memory Atoms].",
+    "citations": [
+      "Doc-to-Atom: Learning to Compile and Compose Memory Atoms"
+    ],
+    "gradeRating": "CORRECT",
+    "fallbackTriggered": false,
+    "scores": {
+      "correctness": 5,
+      "citationQuality": 1,
+      "fallbackScore": "N/A",
+      "reason": "The answer accurately describes the limitations of Doc-to-LoRA and how Doc-to-Atom addresses them, while correctly citing the relevant source."
+    }
+  },
+  {
+    "questionId": "Q3",
+    "category": "A",
+    "pipeline": "Baseline",
+    "answer": "**Agentic Procedural Policy Optimization (APPO)** is a novel approach in **reinforcement learning (RL)** that enhances the decision-making capabilities of agents by refining how branching decisions and credit assignments are managed. Traditional methods often rely on coarse heuristic units, making it challenging to trace the influence of intermediate decisions on final outcomes. APPO addresses this by focusing on fine-grained decision points throughout the sequence of actions rather than just at tool-call boundaries.\n\nThe mechanism involves two key innovations: first, it employs a **Branching Score** that combines token uncertainty with the likelihood of successful continuations, allowing for more targeted exploration of decision points. Second, it introduces **procedure-level advantage scaling**, which improves the distribution of credit across branched rollouts. This targeted approach not only enhances the performance of agents but also maintains interpretability in their behavior. Experimental results indicate that APPO consistently outperforms existing RL baselines, achieving significant improvements in agentic capabilities across multiple benchmarks [APPO: Agentic Procedural Policy Optimization].",
+    "citations": [
+      "APPO: Agentic Procedural Policy Optimization"
+    ],
+    "scores": {
+      "correctness": 5,
+      "citationQuality": 1,
+      "fallbackScore": "N/A",
+      "reason": "The answer accurately explains the mechanism of APPO and correctly cites the relevant source."
+    }
+  },
+  {
+    "questionId": "Q3",
+    "category": "A",
+    "pipeline": "RAPTOR+CRAG",
+    "answer": "**Agentic Procedural Policy Optimization (APPO)** is a novel approach in **reinforcement learning (RL)** that enhances the decision-making process of agents by refining how branching and credit assignment are handled. Traditional methods often rely on coarse heuristic units, which can obscure the influence of intermediate decisions on final outcomes. APPO addresses this by focusing on fine-grained decision points throughout the generated sequence rather than just at tool-call boundaries.\n\nThe mechanism involves selecting branching locations using a **Branching Score**, which integrates **token uncertainty** with the likelihood of future actions influenced by the policy. This allows for more targeted exploration while avoiding misleading high-entropy positions. Additionally, APPO employs **procedure-level advantage scaling** to distribute credit more effectively across branched rollouts, thereby improving the learning efficiency of agents.\n\nExperimental results demonstrate that APPO consistently outperforms established agentic RL baselines, achieving notable improvements in performance while ensuring efficient tool usage and maintaining interpretability of agent behavior [APPO: Agentic Procedural Policy Optimization].",
+    "citations": [
+      "APPO: Agentic Procedural Policy Optimization"
+    ],
+    "gradeRating": "CORRECT",
+    "fallbackTriggered": false,
+    "scores": {
+      "correctness": 5,
+      "citationQuality": 1,
+      "fallbackScore": "N/A",
+      "reason": "The answer accurately describes the mechanism of APPO and correctly cites the relevant source."
+    }
+  },
+  {
+    "questionId": "Q4",
+    "category": "A",
+    "pipeline": "Baseline",
+    "answer": "**Context-Driven Incremental Compression (C-DIC)** effectively manages multi-turn dialogue context by employing a strategy that minimizes information loss while enhancing efficiency. Unlike traditional methods that may truncate or summarize dialogue history, which can lead to degraded fidelity, C-DIC utilizes a framework that treats conversations as interleaved contextual threads. It maintains **revisable per-thread compression states** within a compact dialogue memory.\n\nAt each dialogue turn, C-DIC implements a lightweight **retrieve, revise, and write-back** loop, which facilitates information sharing across turns and updates outdated memories. This approach stabilizes long-horizon behavior, ensuring that critical information is preserved throughout the conversation. Furthermore, C-DIC adapts **truncated backpropagation-through-time (TBPTT)** to learn cross-turn dependencies without requiring full-history backpropagation, thus optimizing the learning process for multi-turn dialogues. Extensive experiments demonstrate that C-DIC achieves superior performance and efficiency, maintaining stable inference latency and perplexity even over hundreds of dialogue turns, which supports scalable high-quality dialogue modeling [Context-Driven Incremental Compression for Multi-Turn Dialogue Generation].",
+    "citations": [
+      "Context-Driven Incremental Compression for Multi-Turn Dialogue Generation"
+    ],
+    "scores": {
+      "correctness": 5,
+      "citationQuality": 1,
+      "fallbackScore": "N/A",
+      "reason": "The answer accurately describes C-DIC's approach to managing multi-turn dialogue context and correctly cites the relevant source."
+    }
+  },
+  {
+    "questionId": "Q4",
+    "category": "A",
+    "pipeline": "RAPTOR+CRAG",
+    "answer": "**Context-Driven Incremental Compression (C-DIC)** effectively manages multi-turn dialogue context by utilizing a strategy that treats conversations as interleaved contextual threads. This approach allows C-DIC to maintain **revisable per-thread compression states** within a compact dialogue memory, which is crucial for preserving information across multiple dialogue turns. \n\nAt each turn, C-DIC employs a lightweight **retrieve, revise, and write-back loop** that facilitates the sharing of information between turns and updates outdated memories. This mechanism helps stabilize the model's performance over long dialogues, reducing the risk of information loss and compounding errors that are common with naive truncation or summarization methods. Additionally, C-DIC adapts **truncated backpropagation-through-time (TBPTT)** to learn cross-turn dependencies without the need for full-history backpropagation, enhancing its efficiency and robustness in dialogue generation tasks. \n\nEmpirical results indicate that C-DIC demonstrates superior performance and efficiency, maintaining stable inference latency and perplexity even over extensive dialogue interactions, thereby supporting scalable high-quality dialogue modeling [Context-Driven Incremental Compression for Multi-Turn Dialogue Generation].",
+    "citations": [
+      "Context-Driven Incremental Compression for Multi-Turn Dialogue Generation"
+    ],
+    "gradeRating": "CORRECT",
+    "fallbackTriggered": false,
+    "scores": {
+      "correctness": 5,
+      "citationQuality": 1,
+      "fallbackScore": "N/A",
+      "reason": "The answer accurately describes the C-DIC method and correctly cites the relevant source."
+    }
+  },
+  {
+    "questionId": "Q5",
+    "category": "A",
+    "pipeline": "Baseline",
+    "answer": "The core proposal of **Reroute** for **Vision-Language Models** (VLMs) focuses on improving visual token reduction by introducing a method called recoverable routing instead of the traditional rank-and-remove approach. In existing methods, visual tokens are scored, and a compact subset is retained while the rest are permanently discarded. This can lead to inefficiencies, as the importance of tokens can change throughout the decoder's layers, particularly for grounding-sensitive queries.\n\n**Reroute** allows selected visual tokens to pass through decoder blocks while deferred tokens can bypass stages and re-enter the candidate pool for future routing decisions. This approach preserves the theoretical computational efficiency and memory budget of the pruning method it enhances. The results indicate that **Reroute** improves grounding performance under aggressive token reduction while maintaining overall visual question answering (VQA) performance across various model backbones, suggesting that visual token reduction should be viewed as a recoverable process rather than irreversible pruning [Reroute, Don't Remove: Recoverable Visual Token Routing for Vision-Language Models].",
+    "citations": [
+      "Reroute, Don't Remove: Recoverable Visual Token Routing for Vision-Language Models"
+    ],
+    "scores": {
+      "correctness": 5,
+      "citationQuality": 1,
+      "fallbackScore": "N/A",
+      "reason": "The answer accurately describes the core proposal of Reroute for visual token reduction and correctly cites the relevant source."
+    }
+  },
+  {
+    "questionId": "Q5",
+    "category": "A",
+    "pipeline": "RAPTOR+CRAG",
+    "answer": "The core proposal of **Reroute** for **Vision-Language Models** (VLMs) focuses on improving visual token reduction by replacing the traditional rank-and-remove approach with a recoverable routing mechanism. Instead of permanently discarding visual tokens deemed less important, **Reroute** allows these tokens to bypass certain decoder stages and re-enter the candidate pool for future routing decisions. This method acknowledges that the importance of visual tokens can change at different depths of the decoder, particularly for grounding-sensitive queries. By implementing this recoverable routing, **Reroute** enhances grounding performance under aggressive token reduction while maintaining overall visual question answering (VQA) capabilities. The approach preserves the computational efficiency of existing methods by reusing attention-score ranking rules and stage-wise schedules, thus optimizing both **TFLOPs** and **KV-cache** memory usage without the irreversible loss of potentially valuable tokens [Reroute, Don't Remove: Recoverable Visual Token Routing for Vision-Language Models].",
+    "citations": [
+      "Reroute, Don't Remove: Recoverable Visual Token Routing for Vision-Language Models"
+    ],
+    "gradeRating": "CORRECT",
+    "fallbackTriggered": false,
+    "scores": {
+      "correctness": 5,
+      "citationQuality": 1,
+      "fallbackScore": "N/A",
+      "reason": "The answer accurately describes the core proposal of Reroute for Vision-Language Models and correctly cites the relevant source."
+    }
+  },
+  {
+    "questionId": "Q6",
+    "category": "A",
+    "pipeline": "Baseline",
+    "answer": "**VIA-SD** improves the efficiency of **speculative decoding** (SD) over traditional draft-verify methods by introducing a multi-tier framework that utilizes a **slim-verifier** through **intra-model routing**. Traditional draft-verify approaches rely on binary decisions—either accepting a token or fully recomputing it—which can lead to unnecessary computational costs when many rejected tokens could be verified with less resource-intensive methods. \n\nIn contrast, **VIA-SD** processes draft tokens hierarchically: it directly accepts high-confidence tokens, regenerates medium-confidence tokens using the slim-verifier, and resorts to full-model verification only for uncertain cases. This strategy significantly reduces rejection rates and accelerates inference speed, achieving 10-20% speedups over existing SD baselines and 2.5-3x acceleration compared to non-drafting decoding. Furthermore, **VIA-SD** is compatible with existing SD frameworks without requiring changes to their training procedures, making it a scalable solution for efficient inference in large language models [VIA-SD: Verification via Intra-Model Routing for Speculative Decoding].",
+    "citations": [
+      "VIA-SD: Verification via Intra-Model Routing for Speculative Decoding"
+    ],
+    "scores": {
+      "correctness": 5,
+      "citationQuality": 1,
+      "fallbackScore": "N/A",
+      "reason": "The answer accurately describes how VIA-SD improves speculative decoding efficiency and correctly cites the relevant source."
+    }
+  },
+  {
+    "questionId": "Q6",
+    "category": "A",
+    "pipeline": "RAPTOR+CRAG",
+    "answer": "**VIA-SD** (Verification via Intra-Model Routing for **Speculative Decoding**) enhances the efficiency of speculative decoding compared to traditional draft-verify methods by introducing a multi-tier framework that utilizes a **slim-verifier**. In conventional methods, decisions are binary: either accept a candidate token or fully recompute it. **VIA-SD** improves upon this by allowing for a more nuanced approach where tokens can be processed through different verification stages based on their confidence levels.\n\nSpecifically, high-confidence tokens are directly accepted, medium-confidence tokens are verified using the **slim-verifier**, and only uncertain tokens require full-model verification. This hierarchical processing reduces the reliance on expensive large-model calls for many rejected tokens, effectively lowering rejection rates by 0.10-0.22 and achieving speedups of 10-20% over strong speculative decoding baselines. Additionally, **VIA-SD** is compatible with existing frameworks, requiring no modifications to their training procedures, making it a scalable solution for improving inference efficiency in large language models [VIA-SD: Verification via Intra-Model Routing for Speculative Decoding].",
+    "citations": [
+      "VIA-SD: Verification via Intra-Model Routing for Speculative Decoding"
+    ],
+    "gradeRating": "CORRECT",
+    "fallbackTriggered": false,
+    "scores": {
+      "correctness": 5,
+      "citationQuality": 1,
+      "fallbackScore": "N/A",
+      "reason": "The answer accurately describes how VIA-SD improves speculative decoding efficiency and correctly cites the relevant source."
+    }
+  },
+  {
+    "questionId": "Q7",
+    "category": "B",
+    "pipeline": "Baseline",
+    "answer": "I cannot find the answer in the retrieved sources.",
+    "citations": [
+      "LLM-Based Digital Twin Intelligence for Application-Aware Network Selection in 6G Heterogeneous Wireless Networks",
+      "nD-RoPE: A Generalized RoPE for n-Dimensional Position Embedding",
+      "VIA-SD: Verification via Intra-Model Routing for Speculative Decoding",
+      "Reroute, Don't Remove: Recoverable Visual Token Routing for Vision-Language Models",
+      "Which Models Are Our Models Built On? Auditing Invisible Dependencies in Modern LLMs"
+    ],
+    "scores": {
+      "correctness": 1,
+      "citationQuality": 0,
+      "fallbackScore": 0,
+      "reason": "The answer does not provide any relevant information about the mixture of experts architecture or routing design of DeepSeek-V3 and fails to reference any of the retrieved sources."
+    }
+  },
+  {
+    "questionId": "Q7",
+    "category": "B",
+    "pipeline": "RAPTOR+CRAG",
+    "answer": "The **Mixture-of-Experts (MoE)** architecture in **DeepSeek-V3** consists of 671 billion total parameters, with 37 billion activated for each token during inference. This architecture is designed to optimize computational efficiency by activating only a subset of experts for each token, thereby balancing performance and resource usage. DeepSeek-V3 employs a **Multi-head Latent Attention (MLA)** mechanism and a specialized **DeepSeekMoE** architecture, which were validated in its predecessor, DeepSeek-V2. \n\nFor routing design, DeepSeek-V3 implements an innovative **auxiliary-loss-free strategy** that enhances load balancing across experts. Additionally, it sets a multi-token prediction training objective to improve overall model performance. The model was pre-trained on a vast dataset of 14.8 trillion tokens and underwent supervised fine-tuning and reinforcement learning stages to fully leverage its capabilities. This strategic design allows DeepSeek-V3 to achieve superior performance while maintaining a stable training process, requiring only 2.788 million H800 GPU hours for full training [DeepSeek-V3 Technical Report].",
+    "citations": [
+      "DeepSeek-V3 Technical Report"
+    ],
+    "gradeRating": "INCORRECT",
+    "fallbackTriggered": true,
+    "scores": {
+      "correctness": 5,
+      "citationQuality": 1,
+      "fallbackScore": 1,
+      "reason": "The answer accurately describes the MoE architecture and routing design of DeepSeek-V3, correctly cites the relevant source, and integrates fresh details from the live search."
+    }
+  },
+  {
+    "questionId": "Q8",
+    "category": "B",
+    "pipeline": "Baseline",
+    "answer": "I cannot find the answer in the retrieved sources.",
+    "citations": [
+      "Doc-to-Atom: Learning to Compile and Compose Memory Atoms",
+      "ATLAS: Active Theory Learning for Automated Science",
+      "Harness In-Context Operator Learning with Chain of Operators",
+      "Implicit Neural Representations of Individual Behavior",
+      "Verifiable Environments Are LEGO Bricks: Recursive Composition for Reasoning Generalization"
+    ],
+    "scores": {
+      "correctness": 1,
+      "citationQuality": 0,
+      "fallbackScore": 0,
+      "reason": "The answer does not provide any relevant information or citations from the retrieved sources, indicating a complete lack of correctness and integration of available data."
+    }
+  },
+  {
+    "questionId": "Q8",
+    "category": "B",
+    "pipeline": "RAPTOR+CRAG",
+    "answer": "OpenAI's **o1** reasoning model series employs advanced techniques for inference and reasoning. Key technical details include its training through large-scale **reinforcement learning** to enhance reasoning capabilities via a **chain of thought** approach. This method allows the model to consider safety policies in context, improving its performance on benchmarks related to safety and robustness, such as avoiding generating illicit advice and managing stereotyped responses [OpenAI o1 System Card].\n\nThe inference-time search mechanism involves self-evaluation and constraint-following, particularly in complex tasks. For example, empirical evaluations reveal that **o1-preview** excels in adhering to task constraints but can struggle with decision-making and memory management in spatially complex environments [On The Planning Abilities of OpenAI's o1 Models]. This highlights both the strengths and limitations of the model in planning and reasoning tasks, suggesting areas for future research to enhance its capabilities further. \n\nOverall, the **o1** series represents a significant advancement in AI reasoning, balancing performance with safety considerations [A Systematic Assessment of OpenAI o1-Preview for Higher Order Thinking in Education].",
+    "citations": [
+      "A Systematic Assessment of OpenAI o1-Preview for Higher Order Thinking in Education",
+      "OpenAI o1 System Card"
+    ],
+    "gradeRating": "AMBIGUOUS",
+    "fallbackTriggered": true,
+    "scores": {
+      "correctness": 5,
+      "citationQuality": 1,
+      "fallbackScore": 1,
+      "reason": "The answer accurately describes the o1 reasoning model series, correctly references the relevant sources, and integrates fresh details from live sources."
+    }
+  },
+  {
+    "questionId": "Q9",
+    "category": "B",
+    "pipeline": "Baseline",
+    "answer": "I cannot find the answer in the retrieved sources.",
+    "citations": [
+      "Context-Driven Incremental Compression for Multi-Turn Dialogue Generation",
+      "Doc-to-Atom: Learning to Compile and Compose Memory Atoms",
+      "A Five-Plane Reference Architecture for Runtime Governance of Production AI Agents",
+      "Augmenting Molecular Language Models with Local $n$-gram Memory",
+      "Beyond Fully Random Masking: Attention-Guided Denoising and Optimization for Diffusion Language Models"
+    ],
+    "scores": {
+      "correctness": 1,
+      "citationQuality": 0,
+      "fallbackScore": 0,
+      "reason": "The answer does not provide any relevant information regarding Gemini 1.5 Pro's technical achievement and fails to cite any of the retrieved sources."
+    }
+  },
+  {
+    "questionId": "Q9",
+    "category": "B",
+    "pipeline": "RAPTOR+CRAG",
+    "answer": "**Gemini 1.5 Pro** achieves its impressive **1-million-token context window** through advancements in **multimodal understanding** and **long-context retrieval** capabilities. The model demonstrates near-perfect recall on long-context tasks, with performance improvements in areas such as **long-document question answering (QA)** and **long-video QA**. Notably, it can maintain high accuracy and retrieval rates even when processing up to **10 million tokens**, representing a significant leap over previous models like **Claude 3.0** and **GPT-4 Turbo**, which are limited to 200k and 128k tokens, respectively. \n\nThe architecture of **Gemini 1.5** is designed for **compute efficiency**, enabling it to handle vast amounts of information from diverse sources, including text, video, and audio, while still achieving state-of-the-art performance across various benchmarks. This capability allows **Gemini 1.5 Pro** to effectively collaborate with users across different tasks, significantly improving productivity and efficiency in real-world applications [Gemini 1.5: Unlocking multimodal understanding across millions of tokens of context].",
+    "citations": [
+      "Gemini 1.5: Unlocking multimodal understanding across millions of tokens of context"
+    ],
+    "gradeRating": "INCORRECT",
+    "fallbackTriggered": true,
+    "scores": {
+      "correctness": 5,
+      "citationQuality": 1,
+      "fallbackScore": 1,
+      "reason": "The answer accurately describes the technical advancements of Gemini 1.5 Pro and correctly cites the relevant source from the retrieved list."
+    }
+  },
+  {
+    "questionId": "Q10",
+    "category": "B",
+    "pipeline": "Baseline",
+    "answer": "The **Swarm** multi-agent orchestration framework, open-sourced by OpenAI, is designed to enhance collaborative decision-making and task execution among multiple agents. It employs a **generation-evaluation-optimization** closed-loop approach, particularly effective in complex tasks such as automated concrete barrier design. This framework utilizes the orchestration capabilities of **AutoGen**, allowing agents to generate design proposals, evaluate them against regulatory standards, and optimize the outcomes iteratively.\n\nThe framework emphasizes high accuracy, achieving over 98% design correctness, and demonstrates that smaller models can outperform larger ones, thus reducing computational costs while maintaining performance. This is significant for making AI-assisted engineering tools more accessible to the industry. The source code for this multi-agent design framework is available on GitHub, facilitating further exploration and application in various engineering contexts [A Lightweight Multi-Agent Framework for Automated Concrete Barrier Design, arXiv:XXXX.XXXX].",
+    "citations": [
+      "A Lightweight Multi-Agent Framework for Automated Concrete Barrier Design"
+    ],
+    "scores": {
+      "correctness": 4,
+      "citationQuality": 0,
+      "fallbackScore": 0,
+      "reason": "The answer is mostly correct but lacks proper citations from the retrieved sources and does not integrate fresh details from live sources."
+    }
+  },
+  {
+    "questionId": "Q10",
+    "category": "B",
+    "pipeline": "RAPTOR+CRAG",
+    "answer": "The **Swarm** multi-agent orchestration framework, developed by OpenAI, leverages **large language models (LLMs)** to facilitate coordination among decentralized agents through natural language prompts. This innovative approach allows agents to replace traditional hard-coded behaviors with prompt-driven interactions, enabling them to adaptively respond to environmental stimuli. The framework is exemplified through applications in swarm intelligence, such as **ant colony foraging** and **bird flocking**, utilizing a toolchain that integrates LLMs with the **NetLogo** simulation platform, enhancing communication via the OpenAI API [Multi-Agent Systems Powered by Large Language Models: Applications in Swarm Intelligence].\n\nHowever, the implementation of LLM-powered swarms faces significant challenges, particularly regarding computational efficiency. For instance, simulations using the **LLM-based Boids** algorithm demonstrated a computational overhead approximately 300 times greater than classical methods, indicating limitations for real-time applications [LLM-Powered Swarms: A New Frontier or a Conceptual Stretch?]. Overall, the **Swarm** framework represents a significant step towards exploring intelligent systems while highlighting the need for further optimization in LLM-driven multi-agent environments.",
+    "citations": [
+      "LLM-Powered Swarms: A New Frontier or a Conceptual Stretch?",
+      "Multi-Agent Systems Powered by Large Language Models: Applications in Swarm Intelligence"
+    ],
+    "gradeRating": "INCORRECT",
+    "fallbackTriggered": true,
+    "scores": {
+      "correctness": 5,
+      "citationQuality": 1,
+      "fallbackScore": 1,
+      "reason": "The answer accurately describes the Swarm framework, correctly references the relevant sources, and integrates fresh details from the live search."
+    }
+  }
+]
