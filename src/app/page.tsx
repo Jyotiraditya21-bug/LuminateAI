@@ -846,7 +846,7 @@ Answer:`;
       )}
 
       {/* Input Row section */}
-      <section className="input-section">
+      <section className="input-section" style={{ marginBottom: '1rem' }}>
         <form onSubmit={handleSubmit} className="chat-form">
           <input
             type="text"
@@ -880,6 +880,62 @@ Answer:`;
           </button>
         </form>
       </section>
+
+      {/* System Pathway Legend */}
+      <div 
+        className="system-legend"
+        style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-card)',
+          borderRadius: '12px',
+          padding: '1.25rem',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.02)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.75rem',
+          fontSize: '0.85rem',
+          lineHeight: '1.4',
+          fontFamily: 'var(--font-sans)',
+          color: 'var(--text-secondary)',
+          marginBottom: '1.5rem'
+        }}
+      >
+        <div style={{ fontWeight: 700, color: 'var(--text-main)', fontFamily: 'var(--font-display)', fontSize: '0.95rem' }}>
+          Corrective RAG (CRAG) Decision Pathways
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span className="grade-badge correct" style={{ fontSize: '0.75rem', fontWeight: 600, padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
+                Correct
+              </span>
+            </div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+              The local hierarchical index contains sufficient information. The system generates the response using local documents only.
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span className="grade-badge ambiguous" style={{ fontSize: '0.75rem', fontWeight: 600, padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
+                Ambiguous
+              </span>
+            </div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+              The local index is partially helpful but lacks detail. The system retrieves fresh context from arXiv and merges both sources.
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span className="grade-badge incorrect" style={{ fontSize: '0.75rem', fontWeight: 600, padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
+                Incorrect
+              </span>
+            </div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+              The local index is irrelevant. The system completely bypasses local data, executing a live search on arXiv for a fresh answer.
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Suggestions Row for quick-test in case query is empty */}
       {blocks.length === 0 && !isLoading && (

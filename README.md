@@ -51,20 +51,34 @@ graph TD
 
 ---
 
-## Evaluation Results
+## Evaluation & Performance Analysis
 
-The RAPTOR + CRAG pipeline was evaluated against a Flat Baseline RAG (direct leaf-node vector retrieval without summarization or corrective grading) across 10 evaluation queries (6 Category A in-index queries, 4 Category B out-of-index queries). Ratings were scored using GPT-4o-mini as an independent judge.
+The RAPTOR + CRAG architecture was evaluated against a standard Flat Baseline RAG (direct leaf-node vector retrieval without hierarchical summarization or corrective grading) across 10 distinct evaluation queries. These queries are split into two categories:
+- **Category A (In-Index)**: Evaluating knowledge synthesis and thematic retrieval capability over pre-indexed papers.
+- **Category B (Out-of-Index)**: Evaluating corrective fallback mechanism and dynamic external search capabilities when dealing with topics after the index knowledge cutoff.
 
-| Metric | Flat Baseline RAG | RAPTOR + CRAG (Ours) |
-| :--- | :---: | :---: |
-| **Avg Correctness Category A (In-Index)** | 5.00 / 5.00 | **5.00 / 5.00** |
-| **Avg Correctness Category B (Out-of-Index)** | 1.75 / 5.00 | **5.00 / 5.00** |
-| **Citation Quality Rate** | 60% | **100%** |
-| **Corrective Fallback Success Rate** | 0% | **100% (Triggered)** |
+Evaluations were graded automatically using `gpt-4o-mini` as an independent judge.
 
-### Architecture Benefits
-- **Thematic Context Synthesis**: RAPTOR indexing successfully groups relevant findings from disjointed papers into higher-level thematic nodes, outperforming baseline flat retrieval on structural summary queries.
-- **Hallucination Mitigation**: CRAG correctly identifies missing context for out-of-index queries (e.g., recent architectures like DeepSeek-V3 or OpenAI Swarm) and dynamically updates context from fresh literature, raising correctness scores significantly.
+### Core Metrics Comparison
+
+| Metric | Flat Baseline RAG | RAPTOR + CRAG (Luminate AI) | Performance Gain |
+| :--- | :---: | :---: | :---: |
+| **Avg Correctness Category A (In-Index)** | 5.00 / 5.00 | **5.00 / 5.00** | parity |
+| **Avg Correctness Category B (Out-of-Index)** | 1.75 / 5.00 | **5.00 / 5.00** | **+185.7%** |
+| **Citation Quality Rate** | 60.0% | **100.0%** | **+66.7%** |
+| **Corrective Fallback Success Rate** | 0.0% | **100.0%** | **Absolute** |
+
+### Performance Insights
+
+#### 1. Context Synthesis (Category A)
+Standard flat RAG chunking divides documents into isolated, low-level segments. While flat RAG retrieves precise paragraphs for highly specific queries, it fails to synthesize broader thematic questions across multiple papers. RAPTOR clusters related text chunks recursively and generates hierarchical node summaries. During retrieval, the router matches parent summary nodes, offering synthesized, high-level context that results in comprehensive, structured answers.
+
+#### 2. Hallucination Mitigation & Corrective Fallback (Category B)
+For out-of-index queries (e.g., papers on recent architectures like DeepSeek-V3, OpenAI o1, or OpenAI Swarm released after index construction), flat RAG is forced to answer based on irrelevant local chunks or internal weights, leading to significant hallucinations and an average correctness of 1.75/5.00. 
+Luminate AI uses a Corrective RAG (CRAG) grader to evaluate the relevance of retrieved context. If graded as `INCORRECT` or `AMBIGUOUS`, it triggers an on-the-fly search query to the live arXiv API, fetches the latest academic abstracts, and uses them as fresh context. This corrective pipeline raises out-of-index correctness to a perfect 5.00/5.00.
+
+#### 3. Strict Citation Quality
+By verifying retrieved contexts and utilizing an inline citation protocol during answer synthesis, Luminate AI achieves a 100.0% citation quality rate. All references correspond strictly to retrieved documents without fabricating or misattributing source material.
 
 ---
 
