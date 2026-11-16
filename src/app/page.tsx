@@ -40,6 +40,7 @@ interface QABlock {
   citations: Citation[];
   trace: Trace;
   isTraceOpen: boolean;
+  mode?: 'cached_replay' | 'live_indexed' | 'live_fallback';
 }
 
 const matchCachedQuery = (queryText: string, cachedData: any[]): any | null => {
@@ -325,14 +326,6 @@ export default function Home() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
-    // Load Provider
-    const savedProvider = localStorage.getItem('api_provider') as any;
-    if (savedProvider) setProvider(savedProvider || 'openai');
-
-    // Load API Key
-    const savedKey = localStorage.getItem('api_key') || localStorage.getItem('openai_api_key') || '';
-    setApiKey(savedKey);
-
     const loadIndexData = async () => {
       const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
       try {
@@ -435,7 +428,8 @@ export default function Home() {
           answer: cached.answer,
           citations,
           trace,
-          isTraceOpen: true
+          isTraceOpen: true,
+          mode: 'cached_replay'
         };
 
         setBlocks(prev => [newBlock, ...prev]);
@@ -497,12 +491,12 @@ ${contextTextForGrading}
 JSON Output:`;
 
       const gradingResponse = await callLLM(provider, keyToUse, gradingPrompt, true, modelToUse);
-      let grade = { rating: 'AMBIGUOUS' as 'CORRECT' | 'AMBIGUOUS' | 'INCORRECT', reason: 'Failed to parse grading response.' };
+      const grade = { rating: 'AMBIGUOUS' as 'CORRECT' | 'AMBIGUOUS' | 'INCORRECT', reason: 'Failed to parse grading response.' };
       try {
         const parsed = JSON.parse(gradingResponse.trim());
         grade.rating = parsed.rating || 'AMBIGUOUS';
         grade.reason = parsed.reason || '';
-      } catch (e) {
+      } catch (_e) {
         console.error('Failed to parse grading response:', gradingResponse);
       }
 
@@ -553,7 +547,7 @@ arXiv Search Query:`;
 
       // 4. Compile context text and citations
       const citations: Citation[] = [];
-      let contextTextParts: string[] = [];
+      const contextTextParts: string[] = [];
 
       finalNodes.forEach(node => {
         contextTextParts.push(`[Index Source: ${node.id} (${node.level})]\n${node.text}`);
@@ -644,7 +638,8 @@ Answer:`;
         answer: generatedAnswer,
         citations: finalCitations,
         trace,
-        isTraceOpen: true
+        isTraceOpen: true,
+        mode: fallbackTriggered ? 'live_fallback' : 'live_indexed'
       };
 
       setBlocks(prev => [newBlock, ...prev]);
@@ -813,9 +808,7 @@ Answer:`;
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
             <button 
               onClick={() => {
-                localStorage.setItem('api_key', apiKey);
-                localStorage.setItem('openai_api_key', apiKey); // backward compatibility
-                localStorage.setItem('api_provider', provider);
+                // Kept in memory only for security; never saved to localStorage
                 setIsSettingsOpen(false);
               }} 
               className="settings-save-btn"
@@ -832,8 +825,12 @@ Answer:`;
                 width: '100%'
               }}
             >
-              Save Configuration
+              Apply In-Memory Session Key
             </button>
+          </div>
+
+          <div style={{ fontSize: '0.72rem', color: '#10b981', marginTop: '0.25rem' }}>
+            🔒 <em>Security notice:</em> API keys are held strictly in browser memory for this session only and are never saved to localStorage or forwarded to arbitrary hosts.
           </div>
 
           <div className="settings-desc" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>
@@ -1038,9 +1035,24 @@ Answer:`;
 
             {/* 1. Answer Card */}
             <div className="answer-card">
-              <div className="grade-row">
+              <div className="grade-row" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
                 <span className={`grade-badge ${block.trace.grade.rating.toLowerCase()}`}>
                   Grade: {block.trace.grade.rating.toLowerCase()}
+                </span>
+                <span className={`mode-badge mode-${block.mode || 'cached_replay'}`} style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  padding: '0.2rem 0.55rem',
+                  borderRadius: '4px',
+                  background: block.mode === 'live_fallback' ? '#451a03' : (block.mode === 'live_indexed' ? '#064e3b' : '#312e81'),
+                  color: block.mode === 'live_fallback' ? '#fde047' : (block.mode === 'live_indexed' ? '#6ee7b7' : '#c7d2fe'),
+                  border: '1px solid rgba(255,255,255,0.1)'
+                }}>
+                  {block.mode === 'live_fallback'
+                    ? '⚡ Live Corrective arXiv Fallback'
+                    : (block.mode === 'live_indexed'
+                        ? '🟢 Live Indexed Retrieval'
+                        : '💾 Cached Evaluation Replay')}
                 </span>
                 <span>{getGradeText(block.trace.grade.rating)}</span>
               </div>

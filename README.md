@@ -65,8 +65,10 @@ Evaluations were graded automatically using `gpt-4o-mini` as an independent judg
 | :--- | :---: | :---: | :---: |
 | **Avg Correctness Category A (In-Index)** | 5.00 / 5.00 | **5.00 / 5.00** | parity |
 | **Avg Correctness Category B (Out-of-Index)** | 1.75 / 5.00 | **5.00 / 5.00** | **+185.7%** |
-| **Citation Quality Rate** | 60.0% | **100.0%** | **+66.7%** |
-| **Corrective Fallback Success Rate** | 0.0% | **100.0%** | **Absolute** |
+| **Citation Quality Rate** | 60.0% | **100.0%** *(on 10-query benchmark)* | **+66.7%** |
+| **Corrective Fallback Success Rate** | 0.0% | **100.0%** *(on 10-query benchmark)* | **+100.0%** |
+
+*Note: Metrics reflect automated evaluations conducted against the committed benchmark suite in `scripts/eval.ts` and `public/eval-results.json` using `gpt-4o-mini` as independent judge.*
 
 ### Performance Insights
 
