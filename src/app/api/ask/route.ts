@@ -4,16 +4,18 @@ import { retrieveNodes, IndexNode } from '@/lib/retrieve';
 import { gradeContext, fetchLiveArxiv, ArxivPaper } from '@/lib/grade';
 import { generateAnswer, Citation } from '@/lib/generate';
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY || '' });
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-  if (!OPENAI_API_KEY) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
     return NextResponse.json(
-      { error: 'OpenAI API key is not configured on the server.' },
-      { status: 500 }
+      { error: 'OpenAI API key is not configured on the server. Please provide a key in settings or set OPENAI_API_KEY.' },
+      { status: 503 }
     );
   }
+
+  const openai = new OpenAI({ apiKey });
 
   try {
     const body = await request.json();
@@ -25,8 +27,6 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-
-    console.log(`Processing query: "${query}"`);
 
     // 1. Embed user query
     const embedResponse = await openai.embeddings.create({
@@ -41,7 +41,6 @@ export async function POST(request: Request) {
 
     // 3. Grade context relevance (CRAG)
     const grade = await gradeContext(openai, query, retrievedNodes);
-    console.log(`CRAG Grade: ${grade.rating} | Reason: ${grade.reason}`);
 
     // 4. Handle corrective fallback based on grade
     let finalNodes: IndexNode[] = [];
@@ -66,7 +65,7 @@ export async function POST(request: Request) {
 
     // 5. Compile context text and citations
     const citations: Citation[] = [];
-    let contextTextParts: string[] = [];
+    const contextTextParts: string[] = [];
 
     // Add retrieved nodes to context
     finalNodes.forEach(node => {
@@ -133,10 +132,10 @@ export async function POST(request: Request) {
       trace
     });
 
-  } catch (error: any) {
-    console.error('Error in API route:', error);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'An internal server error occurred.';
     return NextResponse.json(
-      { error: error.message || 'An internal server error occurred.' },
+      { error: message },
       { status: 500 }
     );
   }

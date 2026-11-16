@@ -245,7 +245,7 @@ function kMeans(embeddings: number[][], k: number, maxIterations = 30): KMeansRe
     centroids.push([...embeddings[selectedIdx]]);
   }
 
-  let assignments = new Array(n).fill(-1);
+  const assignments = new Array(n).fill(-1);
   for (let iter = 0; iter < maxIterations; iter++) {
     let changed = false;
 

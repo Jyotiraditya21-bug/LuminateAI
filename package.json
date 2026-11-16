@@ -7,7 +7,8 @@
     "build": "next build",
     "build:gh-pages": "GITHUB_PAGES=true next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "tsx --test tests/**/*.test.ts"
   },
   "dependencies": {
     "dotenv": "^17.4.2",
